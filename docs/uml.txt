@@ -1,0 +1,203 @@
+@startuml
+title Plants vs. Zombies - Phase 0 (Final Structure)
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontSize 11
+
+' ========== رنگ پکیج‌ها ==========
+skinparam package {
+    BackgroundColor #E8F4FD
+    BorderColor #2C3E50
+    FontColor #1A5276
+    FontStyle bold
+}
+
+' ========== رنگ کلاس‌ها ==========
+skinparam class {
+    BackgroundColor #FEF9E7
+    BorderColor #D4AC0D
+    FontColor #7D6608
+}
+
+' ========== رنگ اینترفیس و enum ==========
+skinparam enum {
+    BackgroundColor #D5F5E3
+    BorderColor #229954
+    FontColor #145A32
+}
+
+' ========== رنگ Controller ==========
+package controller #F0F8E8 {
+    class Controller #E8F8F5
+    class GameController #E8F8F5
+    class MenuController #E8F8F5
+}
+
+' ========== رنگ Model ==========
+package models #E8F4FD {
+    class Game #D6EAF8
+    class User #D6EAF8
+    class Board #D6EAF8
+    class Tile #D6EAF8
+    class Level #D6EAF8
+    class Wave #D6EAF8
+}
+
+' ========== رنگ گیاهان ==========
+package models.entities.plant #D5F5E3 {
+    class Plant #ABEBC6
+    class PlantType #A9DFBF
+    class PlantFactory #A9DFBF
+    class PeaShooter #ABEBC6
+    class SunFlower #ABEBC6
+    class WallNut #ABEBC6
+    class PotatoMine #ABEBC6
+    class CherryBomb #ABEBC6
+    class Repeater #ABEBC6
+    class TallNut #ABEBC6
+    class Chomper #ABEBC6
+    class FumeShroom #ABEBC6
+    class Torchwood #ABEBC6
+    class LilyPad #ABEBC6
+}
+
+' ========== رنگ زامبی‌ها ==========
+package models.entities.zombies #FADBD8 {
+    class Zombie #F1948A
+    enum ZombieType #F5B7B1
+    enum ArmorType #F5B7B1
+    class Armor #F1948A
+    enum ZombieEffect #F5B7B1
+    class ZombieFactory #F1948A
+}
+
+' ========== رنگ فصل‌ها ==========
+package models.season #FDEBD0 {
+    class Season #F5CBA7
+    class AncientEgypt #F5CBA7
+    class FrostbiteCaves #F5CBA7
+    class BigWaveBeach #F5CBA7
+    class DarkAges #F5CBA7
+}
+
+' ========== رنگ گلخانه و فروشگاه ==========
+package models.greenhouse #E8DAEF {
+    class Greenhouse #D2B4DE
+    class Pot #D2B4DE
+}
+
+package models.shop #E8DAEF {
+    class Shop #D2B4DE
+    class Item #D2B4DE
+}
+
+' ========== رنگ کونست ==========
+package models.quest #F9E79F {
+    class Quest #F7DC6F
+    class DailyQuest #F7DC6F
+    class StoryQuest #F7DC6F
+    class EpicQuest #F7DC6F
+}
+
+class Leaderboard #F9E79F
+
+' ========== رنگ View ==========
+package views #FAD7A1 {
+    class TerminalView #F8C471
+    class GameView #F8C471
+    
+    package menus #FAD7A1 {
+        class Menu #F8C471
+        class RegisterMenu #F8C471
+        class LoginMenu #F8C471
+        class MainMenu #F8C471
+        class GameMenu #F8C471
+        class ProfileMenu #F8C471
+        class SettingsMenu #F8C471
+        class CollectionMenu #F8C471
+        class NewsMenu #F8C471
+    }
+}
+
+' ========== رنگ ابزارها ==========
+package utils #D5F5E3 {
+    class FileManager #ABEBC6
+    class HashUtil #ABEBC6
+    class TimeManager #ABEBC6
+    class Constants #ABEBC6
+}
+
+' ========== کلاس Main ==========
+class Main #FADBD8
+
+' ========== روابط ==========
+Main --> Controller
+
+Controller --> GameController
+Controller --> MenuController
+
+GameController --> Game
+GameController --> GameView
+
+MenuController --> Menu
+
+Game *-- User
+Game *-- Board
+Game *-- Level
+Game *-- Greenhouse
+Game *-- Shop
+Game *-- Leaderboard
+
+Board *-- Tile
+Tile o-- Plant
+Tile o-- Zombie
+
+Level *-- Wave
+Level --> Season
+
+Plant <|-- PeaShooter
+Plant <|-- SunFlower
+Plant <|-- WallNut
+Plant <|-- PotatoMine
+Plant <|-- CherryBomb
+Plant <|-- Repeater
+Plant <|-- TallNut
+Plant <|-- Chomper
+Plant <|-- FumeShroom
+Plant <|-- Torchwood
+Plant <|-- LilyPad
+
+Plant --> PlantType
+PlantFactory --> Plant
+PlantFactory --> PlantType
+
+Zombie --> ZombieType
+Zombie *-- Armor
+Zombie --> ZombieEffect
+ZombieFactory --> Zombie
+ZombieFactory --> ZombieType
+Armor --> ArmorType
+
+Season <|-- AncientEgypt
+Season <|-- FrostbiteCaves
+Season <|-- BigWaveBeach
+Season <|-- DarkAges
+
+Menu <|-- RegisterMenu
+Menu <|-- LoginMenu
+Menu <|-- MainMenu
+Menu <|-- GameMenu
+Menu <|-- ProfileMenu
+Menu <|-- SettingsMenu
+Menu <|-- CollectionMenu
+Menu <|-- NewsMenu
+
+TerminalView --> GameView
+TerminalView --> Menu
+
+Quest <|-- DailyQuest
+Quest <|-- StoryQuest
+Quest <|-- EpicQuest
+
+@enduml
