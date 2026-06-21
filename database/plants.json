@@ -13,7 +13,7 @@
       "cost": 51,
       "health": 300,
       "shootBehavior": "None",
-      "sunProduce": 25,
+      "sunProduce": 23,
       "produceInterval": 10
     },
     {
