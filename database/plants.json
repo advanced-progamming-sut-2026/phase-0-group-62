@@ -10,7 +10,7 @@
     },
     {
       "name": "Sunflower",
-      "cost": 50,
+      "cost": 51,
       "health": 300,
       "shootBehavior": "None",
       "sunProduce": 25,
