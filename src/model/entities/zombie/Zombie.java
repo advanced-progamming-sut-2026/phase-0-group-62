@@ -1,4 +1,2 @@
-package models.entities.zombies;
-
-public class Zombie {
-}
+package model.entities.zombie;
+public class Zombie {}

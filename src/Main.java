@@ -1,14 +1,16 @@
-import controller.Controller;
-import model.Model;
-import view.TerminalView;
+import controller.MenuController;
+import view.menu.RegisterMenu;
+import view.menu.Menu;
 
 public class Main {
     public static void main(String[] args) {
-        Model model = new Model();
-        TerminalView view = new TerminalView();
-        Controller controller = new Controller(model, view);
+        // ۱. ساخت کنترلر (مغز متفکر)
+        MenuController controller = new MenuController();
 
-        controller.start();
+        // ۲. ساخت منوی ثبت‌نام (اتاق کار)
+        Menu registerMenu = new RegisterMenu(controller);
+
+        // ۳. اجرای منو
+        registerMenu.run();
     }
 }
-

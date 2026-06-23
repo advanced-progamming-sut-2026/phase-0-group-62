@@ -1,14 +1,21 @@
 package view.menu;
 
-public class Menu {
-    private String name;
+import controller.MenuController;
+import view.TerminalView;
 
-    public Menu(String name) {
-        this.name = name;
+public abstract class Menu {
+    protected MenuController controller;
+    protected TerminalView view;
+
+    // سازنده برای مقداردهی اولیه به کنترلر و ویو
+    public Menu(MenuController controller) {
+        this.controller = controller;
+        this.view = new TerminalView();
     }
 
-    public String getName() {
-        return name;
+    public abstract void run();
+
+    protected void printMenuHeader(String title) {
+        view.showMessage("--- " + title + " ---");
     }
 }
-

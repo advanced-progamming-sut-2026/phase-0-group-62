@@ -1,22 +1,11 @@
 package controller;
 
-import model.Model;
-import view.TerminalView;
-
 public class Controller {
-    private final Model model;
-    private final TerminalView view;
-    private final MenuController menuController;
-
-    public Controller(Model model, TerminalView view) {
-        this.model = model;
-        this.view = view;
-        this.menuController = new MenuController(model, view);
+    // اگر ورودی خاصی ندارد، این را داشته باشید:
+    public Controller() {
+        // بدنه خالی برای سازنده پیش‌فرض
     }
 
-    public void start() {
-        view.showWelcome();
-        menuController.showCurrentMenu();
-    }
+    // اگر در کلاسِ دیگری از جایِ دیگری صدا می‌زنید،
+    // چک کنید که حتما سازنده‌یِ بدون آرگومان داشته باشید.
 }
-
