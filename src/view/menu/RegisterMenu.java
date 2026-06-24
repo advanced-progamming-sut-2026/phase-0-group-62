@@ -1,62 +1,41 @@
 package view.menu;
 
 import controller.MenuController;
-import view.TerminalView;
-import java.util.HashMap;
+import controller.CommandParser;
 import java.util.Map;
 
 public class RegisterMenu extends Menu {
-    private Map<String, String> temporaryStorage = new HashMap<>();
 
-    // سازنده: چون controller در کلاس مادر تعریف شده، از super استفاده می‌کنیم
     public RegisterMenu(MenuController controller) {
         super(controller);
     }
 
     @Override
     public void run() {
-        handleRegister();
-    }
+        // کست کردن برای دسترسی به کنترلر خاص
+        MenuController ctrl = (MenuController) this.controller;
+        CommandParser parser = new CommandParser(); // پارسر برای تبدیل دستور به Map
 
-    public void handleRegister() {
-        view.showMessage("Registration started. You can enter fields individually or all at once.");
 
         while (true) {
             String input = view.getInput("Register");
-            if (input.equalsIgnoreCase("back")) break;
 
-            temporaryStorage.putAll(controller.getParser().getRegisterArgs(input));
+            if (input.equalsIgnoreCase("back")) {
+                break;
+            }
 
-            if (areAllFieldsPresent()) {
-                String result = controller.processRegister(temporaryStorage);
-                if (result.equals("SUCCESS")) {
-                    view.showMessage("Registration successful!");
-                    temporaryStorage.clear();
-                    break;
-                } else {
-                    view.showMessage("Error: " + result);
-                }
+
+            Map<String, String> args = parser.getRegisterArgs(input);
+
+
+            String result = ctrl.processRegister(args);
+
+            if (result.equals("SUCCESS")) {
+                view.showMessage("Registration successful!");
+                break;
             } else {
-                view.showMessage("Missing fields: " + getMissingFieldsList());
+                view.showMessage("Please try again or type 'back' to return.");
             }
         }
     }
-
-    private boolean areAllFieldsPresent() {
-        return temporaryStorage.containsKey("-u") && temporaryStorage.containsKey("-p") &&
-                temporaryStorage.containsKey("-pc") && temporaryStorage.containsKey("-n") &&
-                temporaryStorage.containsKey("-e");
-    }
-
-    private String getMissingFieldsList() {
-        StringBuilder sb = new StringBuilder();
-        if (!temporaryStorage.containsKey("-u")) sb.append("-u ");
-        if (!temporaryStorage.containsKey("-p")) sb.append("-p ");
-        if (!temporaryStorage.containsKey("-pc")) sb.append("-pc ");
-        if (!temporaryStorage.containsKey("-n")) sb.append("-n ");
-        if (!temporaryStorage.containsKey("-e")) sb.append("-e ");
-        return sb.toString();
-    }
-
-
 }

@@ -9,7 +9,7 @@ public class TerminalView extends View {
         showMessage("you should enter" + elemt);
     }
     //userneme
-    public void showUsernameAlreadyExistsError() {
+    public void showUsernameExistsError() {
         showMessage("Username is already taken.");
     }
     public void showUsernameError(Validator.ValidationResult result) {
@@ -50,6 +50,10 @@ public class TerminalView extends View {
             default -> "Invalid email.";
         };
         showMessage(message);
+    }
+
+    public void showUnknownCommandError(){
+        showMessage("unknown command");
     }
 
 

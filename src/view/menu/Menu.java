@@ -7,7 +7,7 @@ public abstract class Menu {
     protected MenuController controller;
     protected TerminalView view;
 
-    // سازنده برای مقداردهی اولیه به کنترلر و ویو
+
     public Menu(MenuController controller) {
         this.controller = controller;
         this.view = new TerminalView();

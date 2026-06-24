@@ -8,6 +8,7 @@ public class User {
     private String nickname;
     private String email;
     private Gender gender;
+    //inGame اضافه خواهند شد در آیدنه
     private int score;
 
     public User(String username, String passwordHash, String nickname, String email, Gender gender) {

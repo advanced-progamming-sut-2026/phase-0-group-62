@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class HashUtil {
-    public String sha256(String text) {
+    public static String sha256(String text) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
@@ -15,7 +15,7 @@ public class HashUtil {
         }
     }
 
-    private String toHex(byte[] bytes) {
+    private static String toHex(byte[] bytes) {
         StringBuilder builder = new StringBuilder();
         for (byte value : bytes) {
             builder.append(String.format("%02x", value));
