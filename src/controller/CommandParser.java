@@ -1,41 +1,89 @@
 package controller;
 
+import util.ParsedCommand;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class CommandParser {
 
-    private final List<String> validCommands = Arrays.asList(
-            "register", "login", "forget password", "menu logout", "show menu"
+    private final List<String> KNOWN_ACTIONS = Arrays.asList(
+            // منوهای پایه
+            "menu enter chapter", "menu enter", "menu show current", "menu exit", "menu logout",
+            "register", "pick question", "login", "forget password", "answer","new password",
+            // ورود به منوهای مختلف
+            "menu collection", "menu greenhouse", "menu travel-log", "menu leaderboard",
+            "menu coin-wallet", "menu gem-wallet", "menu settings change-difficulty",
+            "menu news show-unread", "menu news show-all",
+            // پروفایل
+            "menu profile change-username", "menu profile change-nickname", "menu profile change-email",
+            "menu profile change-password", "menu profile show-info",
+            // کالکشن و قبل از بازی
+            "show all plants", "show available plants", "add plant", "remove plant", "boost plant", "start game",
+            // داخل بازی
+            "advance time", "collect sun", "show sun amount", "plant plant", "pluck plant", "feed plant",
+            "show map", "show plants status", "show tile status", "zombies info",
+            // گلخانه و فروشگاه
+            "show greenhouse", "collect", "grow", "enter shop", "shop list", "shop daily", "shop buy",
+            // لاگ و چیت‌ها
+            "travel log page", "cheat add-plant-food", "cheat remove-cooldown", "cheat add", "cheat spawn-zombie"
     );
 
-    public String getAction(String input) {
-        String trimmedInput = input.trim().toLowerCase();
-
-        for (String cmd : validCommands) {
-            if (trimmedInput.startsWith(cmd)) {
-                return cmd;
-            }
-        }
-        return "unknown";
+    public CommandParser() {
+        // مرتب‌سازی بر اساس طول (نزولی) تا دستورات چند کلمه‌ای زودتر مچ شوند
+        // مثلاً "menu enter chapter" قبل از "menu enter" چک می‌شود
+        KNOWN_ACTIONS.sort((a, b) -> Integer.compare(b.length(), a.length()));
     }
 
-    public Map<String, String> getRegisterArgs(String input) {
-        Map<String, String> args = new HashMap<>();
-        String[] parts = input.trim().split("\\s+");
+    public ParsedCommand parse(String input) {
+        // تمیز کردن ورودی و حذف فاصله‌های اضافی
+        String normalizedInput = input.trim().replaceAll("\\s+", " ");
+        String lowerInput = normalizedInput.toLowerCase();
 
-        for (int i = 1; i < parts.length; i++) {
-            if (parts[i].equals("-p") && i + 2 < parts.length) {
-                args.put("-p", parts[i + 1]);
-                args.put("-pc", parts[i + 2]);
-                i += 2;
-            } else if (parts[i].startsWith("-") && i + 1 < parts.length) {
-                args.put(parts[i], parts[i + 1]);
-                i++;
+        String matchedAction = "unknown";
+        String remainingPart = "";
+
+        // ۱. پیدا کردن عملیات اصلی (Action)
+        for (String action : KNOWN_ACTIONS) {
+            if (lowerInput.startsWith(action)) {
+                matchedAction = action;
+                // جدا کردن بقیه رشته (که شامل آرگومان‌هاست)
+                if (normalizedInput.length() > action.length()) {
+                    remainingPart = normalizedInput.substring(action.length()).trim();
+                }
+                break;
             }
         }
-        return args;
+
+        ParsedCommand command = new ParsedCommand(matchedAction);
+
+        // اگر دستور ناشناخته بود، سریعاً برگرد
+        if (matchedAction.equals("unknown")) {
+            return command;
+        }
+
+        // ۲. استخراج آرگومان‌ها (Flags)
+        if (!remainingPart.isEmpty()) {
+            if (remainingPart.startsWith("-")) {
+                // حالتی که فلگ داریم (مثل: -u ali -p pass1 pass2)
+                String[] parts = remainingPart.split("(?=\\s-)"); // اسپلیت کردن بر اساس اسپیسِ قبل از دش
+                for (String part : parts) {
+                    part = part.trim();
+                    int spaceIndex = part.indexOf(" ");
+                    if (spaceIndex != -1) {
+                        String flag = part.substring(0, spaceIndex);
+                        String value = part.substring(spaceIndex + 1).trim();
+                        command.addArg(flag, value);
+                    } else {
+                        // فلگ‌های بدون مقدار (مثل -stay-logged-in)
+                        command.addArg(part, "true");
+                    }
+                }
+            } else {
+                // حالتی که فلگ نداریم اما مقدار داریم (مثل: menu enter Greenhouse یا collect (2, 3))
+                command.addArg("VALUE", remainingPart);
+            }
+        }
+
+        return command;
     }
 }

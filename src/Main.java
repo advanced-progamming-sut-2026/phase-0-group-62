@@ -1,16 +1,30 @@
 import controller.MenuController;
-import view.menu.RegisterMenu;
-import view.menu.Menu;
+import model.Settings;
+import model.User;
+import model.UserSession;
+import util.FileManager;
+import view.menu.LoginMenu;
+import view.menu.MainMenu;
+import view.menu.MenuManager;
 
 public class Main {
     public static void main(String[] args) {
-        // ۱. ساخت کنترلر (مغز متفکر)
         MenuController controller = new MenuController();
+        MenuManager manager = MenuManager.getInstance();
 
-        // ۲. ساخت منوی ثبت‌نام (اتاق کار)
-        Menu registerMenu = new RegisterMenu(controller);
+        Settings settings = FileManager.loadSettings();
+        if (settings.getAutoLoginUsername() != null) {
+            User autoUser = FileManager.getUser(settings.getAutoLoginUsername());
+            if (autoUser != null) {
+                UserSession.setCurrentUser(autoUser);
+                manager.setCurrentMenu(new MainMenu(controller));
+            } else {
+                manager.setCurrentMenu(new LoginMenu(controller));
+            }
+        } else {
+            manager.setCurrentMenu(new LoginMenu(controller));
+        }
 
-        // ۳. اجرای منو
-        registerMenu.run();
+        manager.run();
     }
 }

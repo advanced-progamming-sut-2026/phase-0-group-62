@@ -8,22 +8,25 @@ public class User {
     private String nickname;
     private String email;
     private Gender gender;
-    //inGame اضافه خواهند شد در آیدنه
+    private String securityQuestion;
+    private String securityAnswer;
     private int score;
 
-    public User(String username, String passwordHash, String nickname, String email, Gender gender) {
+    public User(String username, String passwordHash, String nickname, String email, Gender gender , String securityQuestion , String securityAnswer) {
         this.username = username;
         this.passwordHash = passwordHash;
         this.nickname = nickname;
         this.email = email;
         this.gender = gender;
+        this.securityQuestion = securityQuestion;
+        this.securityAnswer = securityAnswer;
     }
 
     public String getUsername() {
         return username;
     }
 
-    public String getPasswordHash() {
+    public String getPassword() {
         return passwordHash;
     }
 
@@ -43,8 +46,47 @@ public class User {
         return score;
     }
 
+    public String getSecurityQuestion() {
+        return securityQuestion;
+    }
+
+    public String getSecurityAnswer() {
+        return securityAnswer;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
+    }
+
+    public void setSecurityQuestion(String securityQuestion) {
+        this.securityQuestion = securityQuestion;
+    }
+
+    public void setSecurityAnswer(String securityAnswer) {
+        this.securityAnswer = securityAnswer;
+    }
+
     public void addScore(int amount) {
         score += amount;
     }
 }
-

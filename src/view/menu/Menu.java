@@ -6,11 +6,12 @@ import view.TerminalView;
 public abstract class Menu {
     protected MenuController controller;
     protected TerminalView view;
-
+    protected MenuManager manager;
 
     public Menu(MenuController controller) {
         this.controller = controller;
         this.view = new TerminalView();
+        this.manager = MenuManager.getInstance();
     }
 
     public abstract void run();

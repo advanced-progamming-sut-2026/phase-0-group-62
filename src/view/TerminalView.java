@@ -2,6 +2,8 @@ package view;
 
 import controller.Validator;
 
+import java.util.List;
+
 public class TerminalView extends View {
 
 
@@ -55,6 +57,53 @@ public class TerminalView extends View {
     public void showUnknownCommandError(){
         showMessage("unknown command");
     }
+
+    public void showChoseQuestion(List<String> questions) {
+        showMessage("Choose a question:");
+        for (int i = 0; i < questions.size(); i++) {
+            showMessage((i + 1) + ". " + questions.get(i));
+        }
+    }
+
+    //login
+    public void showSecurityQuestion(String question) {
+        showMessage("Your security question is: " + question);
+    }
+    public void handleLoginResult(String result) {
+        switch (result) {
+            case "Username doesn't exist!" -> showMessage("Username doesn't exist!!");
+            case "Password incorrect!" -> showMessage("Password incorrect!");
+            case "Login successful!" -> showMessage("Login successful");
+            default -> showMessage(result);
+        }
+    }
+
+    public void handleForgetPasswordResult(String result) {
+        switch (result) {
+            case "Username doesn't exist!" -> showMessage("Username doesn't exist!!");
+            case "Username and email doesn't match!" -> showMessage("Username and email doesn't match!");
+            case "SUCCESS_username and email check" -> showMessage("Please answer the security question using: answer -a <answer>");
+            default -> showMessage(result);
+        }
+    }
+
+    public void handleAnswerResult(String result) {
+        switch (result) {
+            case "SUCCESS_answer get" -> showMessage("Identity verified successfully! enter your new password(new password -p -c.");
+            case "Answer is incorrect!" -> showMessage("Answer is incorrect!");
+            default -> showMessage(result);
+        }
+    }
+    public void handleSetPasswordResult(String result) {
+        switch (result) {
+            case "SUCCESS_password changed" -> showMessage("Password changed successfully! You can now login with your new password.");
+            case "invalid password" -> {}
+            default -> showMessage(result);
+        }
+    }
+    public void showLogoutResult(String result){showMessage(result);}
+
+
 
 
 
