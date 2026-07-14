@@ -15,7 +15,7 @@ public class PlantFactory {
                         template.getCost(),
                         template.getHealth(),
                         template.getDamage(),
-                        template.getTag(),
+                        template.getTags(),
                         template.getShootBehavior(),
                         template.getCooldown(),
                         template.getSunProduce(),
