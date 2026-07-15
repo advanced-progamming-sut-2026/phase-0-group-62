@@ -6,4 +6,10 @@ build/
 
 database/*
 !database/.gitkeep
+!database/plants.json
+!database/zombies.json
+!database/settings.json
+!database/users.json
 
+!lib/
+!lib/gson-2.10.1.jar

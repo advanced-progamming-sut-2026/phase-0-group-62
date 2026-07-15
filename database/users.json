@@ -1,0 +1,59 @@
+[
+  {
+    "username": "kian737",
+    "passwordHash": "6e01bc8fbe3297d958cc540fc765d5b7e664ad456172e63b4ad6c233a8f8a8af",
+    "nickname": "kanik",
+    "email": "kianhajio@gmail.com",
+    "gender": "MALE",
+    "securityQuestion": "1",
+    "securityAnswer": "9bb840df7f699d6547f49fd6f9ed17b2d9dd34148f0b01e798d7c51da897ea1a",
+    "score": 0,
+    "news": [],
+    "coins": 0,
+    "gems": 0
+  },
+  {
+    "username": "snia737",
+    "passwordHash": "988b08672f217699c813e601c252020280f59b5cd8247199e17ffb8c6c84f42f",
+    "nickname": "kanik",
+    "email": "kianhajio@gmail.com",
+    "gender": "MALE",
+    "securityQuestion": "1",
+    "securityAnswer": "da5bcc8845f81fa2e265aee815107326a78ed6334106b2b805d92c97320dfbbb",
+    "score": 0,
+    "news": [
+      {
+        "content": "New plant unlocked: Sunflower!",
+        "isRead": true
+      },
+      {
+        "content": "New plant unlocked: Sunflower!",
+        "isRead": true
+      },
+      {
+        "content": "New plant unlocked: Sunflower!",
+        "isRead": true
+      },
+      {
+        "content": "New plant unlocked: Sunflower!",
+        "isRead": true
+      },
+      {
+        "content": "New plant unlocked: Sunflower!",
+        "isRead": true
+      },
+      {
+        "content": "New plant unlocked: Sunflower!",
+        "isRead": true
+      }
+    ],
+    "coins": 2000,
+    "gems": 0,
+    "unlockedPlants": [
+      "PeaShooter"
+    ],
+    "plantLevels": {
+      "PeaShooter": 2
+    }
+  }
+]
