@@ -175,7 +175,7 @@ public class GameMenu extends Menu {
                     view.showMessage("Invalid format! Use show tile status -l (<x>, <y>)");
                 }
             }
-            else if (cmd.getAction().equalsIgnoreCase("release the nuke")) {
+            else if (input.toLowerCase().startsWith("release the nuke")) {
                 String result = gameController.executeNuke();
                 view.showMessage(result);
             }
@@ -208,6 +208,31 @@ public class GameMenu extends Menu {
                             view.showMessage("Invalid cheat format.");
                         }
                     }
+                }
+            }
+            else if (cmd.getAction().equalsIgnoreCase("cheat spawn-zombie")) {
+                String type = cmd.getArg("-t");
+                String loc = cmd.getArg("-l");
+                if (type == null || loc == null) {
+                    view.showMessage("Usage: cheat spawn-zombie -t <type> -l (<x>, <y>)");
+                    continue;
+                }
+                try {
+                    loc = loc.replace("(", "").replace(")", "");
+                    String[] coords = loc.split(",");
+                    int x = Integer.parseInt(coords[0].trim());
+                    int y = Integer.parseInt(coords[1].trim());
+
+                    String formattedType = type.equalsIgnoreCase("normalzombie") ? "NormalZombie" : type;
+                    Zombie z = model.entities.zombie.factory.ZombieFactory.createZombieAtColumn(formattedType, y, x);
+                    if (z != null) {
+                        game.addZombie(z);
+                        view.showMessage("Zombie spawned via cheat.");
+                    } else {
+                        view.showMessage("Invalid zombie type.");
+                    }
+                } catch (Exception e) {
+                    view.showMessage("Invalid format! Use: cheat spawn-zombie -t <type> -l (<x>, <y>)");
                 }
             }
             else {

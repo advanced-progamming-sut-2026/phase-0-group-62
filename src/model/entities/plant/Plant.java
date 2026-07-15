@@ -69,6 +69,24 @@ public class Plant {
     public void update() {
     }
 
+    public String getShootBehavior() {
+        if (category != null && category.equalsIgnoreCase("SHOOTER")) {
+            return "Pea";
+        }
+        return "None";
+    }
+
+    public double getCooldown() {
+        return recharge;
+    }
+
+    public double getSunProduce() {
+        if (category != null && category.equalsIgnoreCase("SUN_PRODUCER")) {
+            return abilityValue;
+        }
+        return 0.0;
+    }
+
     public int getId() { return id; }
     public String getName() { return name; }
     public String getCategory() { return category; }

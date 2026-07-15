@@ -32,6 +32,7 @@ public class Game {
     private boolean won;
     private boolean lost;
     private int lastSunDropTick;
+    private int lastPrintedWave;
 
     public Game() {
         this.board = new Board(5, 9);
@@ -54,6 +55,7 @@ public class Game {
         this.won = false;
         this.lost = false;
         this.lastSunDropTick = 0;
+        this.lastPrintedWave = 0;
     }
 
     public Game(int rows, int columns, int levelNumber, Difficulty difficulty) {
@@ -85,7 +87,8 @@ public class Game {
 
         if (spawner != null) {
             int oldSpawnedCount = spawner.getZombiesSpawnedInWave();
-            if (tickCount == 1 || (spawner.ticksSinceLastSpawn == 0 && oldSpawnedCount == 0)) {
+            if ((tickCount == 1 || (spawner.ticksSinceLastSpawn == 0 && oldSpawnedCount == 0)) && lastPrintedWave < spawner.getCurrentWave()) {
+                lastPrintedWave = spawner.getCurrentWave();
                 if (spawner.isFinalWave()) {
                     System.out.println("The final wave has come.");
                 } else {
@@ -113,9 +116,12 @@ public class Game {
 
         for (Plant plant : new ArrayList<>(activePlants)) {
             plant.update();
-            if (tickCount % 100 == 0 && plant.getSunProduce() > 0) {
-                plant.setHasSunToCollect(true);
-                System.out.println("plant " + plant.getName() + " produced a sun at (" + plant.getX() + ", " + plant.getY() + ")");
+            if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SUN_PRODUCER")) {
+                int intervalTicks = (int) (plant.getActionInterval() * 10);
+                if (intervalTicks > 0 && tickCount % intervalTicks == 0) {
+                    plant.setHasSunToCollect(true);
+                    System.out.println("plant " + plant.getName() + " produced a sun at (" + plant.getX() + ", " + plant.getY() + ")");
+                }
             }
         }
 

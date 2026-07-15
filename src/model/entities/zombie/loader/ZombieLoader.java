@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ZombieLoader {
     private static final String FILE_PATH = "database/zombies.json";
@@ -20,9 +19,9 @@ public class ZombieLoader {
             return new ArrayList<>();
         }
         try (FileReader reader = new FileReader(file)) {
-            Map<String, List<Zombie>> data = gson.fromJson(reader, new TypeToken<Map<String, List<Zombie>>>(){}.getType());
-            if (data != null && data.containsKey("zombies")) {
-                return data.get("zombies");
+            List<Zombie> zombies = gson.fromJson(reader, new TypeToken<List<Zombie>>(){}.getType());
+            if (zombies != null) {
+                return zombies;
             }
             return new ArrayList<>();
         } catch (IOException e) {
