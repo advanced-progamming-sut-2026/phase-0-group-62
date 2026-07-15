@@ -2,7 +2,7 @@ package controller.menu;
 
 public class Controller {
     // اگر ورودی خاصی ندارد، این را داشته باشید:
-    public Controller() {
+    public Controller(MenuController controller) {
         // بدنه خالی برای سازنده پیش‌فرض
     }
 

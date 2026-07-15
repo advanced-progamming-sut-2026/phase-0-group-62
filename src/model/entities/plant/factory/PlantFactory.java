@@ -10,17 +10,23 @@ public class PlantFactory {
     public static Plant createPlant(String type) {
         for (Plant template : templates) {
             if (template.getName().equalsIgnoreCase(type)) {
-                return new Plant(
+                Plant p = new Plant(
+                        template.getId(),
                         template.getName(),
-                        template.getCost(),
-                        template.getHealth(),
-                        template.getDamage(),
+                        template.getCategory(),
                         template.getTags(),
-                        template.getShootBehavior(),
-                        template.getCooldown(),
-                        template.getSunProduce(),
-                        template.getProduceInterval()
+                        template.getCost(),
+                        template.getBaseHp(),
+                        template.getDamage(),
+                        template.getActionInterval(),
+                        template.getRecharge(),
+                        template.getAbilityType(),
+                        template.getAbilityValue(),
+                        template.getPlantFoodType(),
+                        template.getPlantFoodValue()
                 );
+                p.initHealth();
+                return p;
             }
         }
         return null;

@@ -17,7 +17,7 @@ public class Spawner {
     private Map<Integer, List<String>> waveSchedule;
     private boolean finalWaveStarted;
     private int zombiesSpawnedInWave;
-    private int ticksSinceLastSpawn;
+    public int ticksSinceLastSpawn;
     private int spawnInterval;
 
     public Spawner(Board board, int totalWaves, Difficulty difficulty) {
@@ -43,12 +43,9 @@ public class Spawner {
     }
 
     private int calculateWaveCost(int wave) {
-        // Wave cost increases with wave number
         int baseCost = 50;
         int waveMultiplier = (int) Math.pow(1.25, wave - 1);
         int cost = (int) (baseCost * waveMultiplier);
-
-        // Apply difficulty modifier
         switch (difficulty) {
             case EASY:
                 cost = (int) (cost * 0.7);
@@ -60,7 +57,6 @@ public class Spawner {
                 break;
         }
 
-        // Final wave has double cost
         if (wave == totalWaves) {
             cost *= 2;
         }
@@ -72,9 +68,7 @@ public class Spawner {
         List<String> types = new ArrayList<>();
         int remainingCost = waveCost;
 
-        // Determine available zombies for this wave
         List<String> availableZombies = getAvailableZombiesForWave(wave);
-
         while (remainingCost > 0) {
             String type = availableZombies.get(new Random().nextInt(availableZombies.size()));
             int cost = ZombieFactory.getWaveCost(type);
@@ -82,9 +76,8 @@ public class Spawner {
                 types.add(type);
                 remainingCost -= cost;
             } else {
-                // If no zombie fits, use basic
                 if (remainingCost >= 10) {
-                    types.add("basic");
+                    types.add("NormalZombie");
                     remainingCost -= 10;
                 } else {
                     break;
@@ -97,35 +90,16 @@ public class Spawner {
 
     private List<String> getAvailableZombiesForWave(int wave) {
         List<String> available = new ArrayList<>();
-        available.add("basic");
-        available.add("conehead");
+        available.add("NormalZombie");
 
         if (wave >= 2) {
-            available.add("buckethead");
+            available.add("ConeZombie");
         }
         if (wave >= 3) {
-            available.add("newspaper");
+            available.add("BucketZombie");
         }
         if (wave >= 4) {
-            available.add("parasol");
-        }
-        if (wave >= 5) {
-            available.add("turquoise");
-        }
-        if (wave >= 6) {
-            available.add("prospector");
-        }
-        if (wave >= 7) {
-            available.add("pianist");
-        }
-        if (wave >= 8) {
-            available.add("barrelroller");
-        }
-        if (wave >= 9) {
-            available.add("allstar");
-        }
-        if (wave >= 10) {
-            available.add("gargantuar");
+            available.add("FastZombie");
         }
 
         return available;
@@ -134,11 +108,11 @@ public class Spawner {
     private int getSpawnInterval() {
         switch (difficulty) {
             case EASY:
-                return 120; // 2 seconds at 60 ticks/sec
+                return 120;
             case HARD:
-                return 40;  // ~0.67 seconds
+                return 40;
             default:
-                return 80;  // ~1.33 seconds
+                return 80;
         }
     }
 
@@ -161,23 +135,17 @@ public class Spawner {
 
         String type = zombieTypes.get(zombiesSpawnedInWave);
         int lane = new Random().nextInt(board.getRows());
-
-        // For special waves, spawn at specific lanes
         if (currentWave == totalWaves) {
-            // Final wave - spawn zombies in all lanes
             lane = zombiesSpawnedInWave % board.getRows();
         }
 
-        int column = board.getColumns() - 1; // Right side
+        int column = board.getColumns() - 1;
         Zombie zombie = ZombieFactory.createZombieAtColumn(type, lane, column);
-
         if (zombie != null) {
-            // 5% chance to be glowing (drops plant food)
             if (new Random().nextInt(100) < 5) {
                 zombie.setGlowing(true);
             }
 
-            // Place zombie on board
             Tile tile = board.getTile(lane, column);
             if (tile != null) {
                 tile.setZombie(zombie);
@@ -192,7 +160,6 @@ public class Spawner {
 
     public void update() {
         ticksSinceLastSpawn++;
-
         if (ticksSinceLastSpawn >= spawnInterval && remainingZombies > 0) {
             spawnNextZombie();
             ticksSinceLastSpawn = 0;
@@ -200,8 +167,8 @@ public class Spawner {
     }
 
     public boolean isWaveComplete() {
-        return remainingZombies <= 0 && zombiesSpawnedInWave >= 
-               waveSchedule.getOrDefault(currentWave, Collections.emptyList()).size();
+        return remainingZombies <= 0 && zombiesSpawnedInWave >=
+                waveSchedule.getOrDefault(currentWave, Collections.emptyList()).size();
     }
 
     public boolean isFinalWave() {

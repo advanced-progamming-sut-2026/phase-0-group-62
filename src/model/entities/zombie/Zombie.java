@@ -83,11 +83,44 @@ public class Zombie {
         }
     }
 
+    public void updateEffects() {
+        updateEffects(1.0);
+    }
+
+    public void updateCooldown() {
+    }
+
+    public boolean hasEffect(ZombieEffect effect) {
+        if (effect == ZombieEffect.FROZEN && frozenDuration > 0) {
+            return true;
+        }
+        if (effect == ZombieEffect.CHILLED && chilledDuration > 0) {
+            return true;
+        }
+        return false;
+    }
+
+    public void move() {
+        this.x -= getEffectiveSpeed();
+    }
+
+    public void setEnraged(boolean enraged) {
+        this.isAngry = enraged;
+    }
+
+    public boolean isBoss() {
+        return this.name.equalsIgnoreCase("gargantuar");
+    }
+
+    public String getType() {
+        return this.name;
+    }
+
     public double getEffectiveSpeed() {
         if (frozenDuration > 0) {
             return 0.0;
         }
-        double currentSpeed = speed;
+        double currentSpeed = speed / 10.0;
         if (chilledDuration > 0) {
             currentSpeed /= 2.0;
         }

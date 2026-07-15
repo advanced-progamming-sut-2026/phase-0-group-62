@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class PlantLoader {
     private static final String FILE_PATH = "database/plants.json";
@@ -20,9 +19,9 @@ public class PlantLoader {
             return new ArrayList<>();
         }
         try (FileReader reader = new FileReader(file)) {
-            Map<String, List<Plant>> data = gson.fromJson(reader, new TypeToken<Map<String, List<Plant>>>(){}.getType());
-            if (data != null && data.containsKey("plants")) {
-                return data.get("plants");
+            List<Plant> plants = gson.fromJson(reader, new TypeToken<List<Plant>>(){}.getType());
+            if (plants != null) {
+                return plants;
             }
             return new ArrayList<>();
         } catch (IOException e) {
