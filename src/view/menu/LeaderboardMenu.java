@@ -6,10 +6,10 @@ import model.User;
 import model.leaderboard.Leaderboard;
 import util.ParsedCommand;
 import util.FileManager;
-
 import java.util.List;
 
 public class LeaderboardMenu extends Menu {
+
     public LeaderboardMenu(MenuController controller) {
         super(controller);
     }
@@ -20,40 +20,81 @@ public class LeaderboardMenu extends Menu {
         while (true) {
             String input = view.getInput("LeaderboardMenu");
             if (input.equalsIgnoreCase("back")) {
-                manager.setCurrentMenu(new PlayMenu(controller));
+                manager.setCurrentMenu(new MainMenu(controller));
                 break;
             }
 
             ParsedCommand cmd = parser.parse(input);
-            if (cmd.getAction().equalsIgnoreCase("menu leaderboard")) {
-                List<User> users = FileManager.loadUsers();
+            String action = cmd.getAction();
+
+            if (action.equalsIgnoreCase("menu leaderboard") || action.equalsIgnoreCase("show")) {
+                List<User> allUsers = FileManager.loadUsers();
                 Leaderboard leaderboard = new Leaderboard();
-                for (User u : users) {
+                for (User u : allUsers) {
                     leaderboard.addUser(u);
                 }
 
-                String mode = cmd.getArg("-s");
-                if (mode == null) {
-                    leaderboard.sortUsers(Leaderboard.SortType.BY_SCORE);
-                } else if (mode.equalsIgnoreCase("level")) {
-                    leaderboard.sortUsers(Leaderboard.SortType.BY_LEVEL);
-                } else if (mode.equalsIgnoreCase("minigame")) {
-                    leaderboard.sortUsers(Leaderboard.SortType.BY_MINI_GAMES);
-                } else if (mode.equalsIgnoreCase("quest")) {
-                    leaderboard.sortUsers(Leaderboard.SortType.BY_QUESTS);
-                } else {
-                    leaderboard.sortUsers(Leaderboard.SortType.BY_SCORE);
+                String sortBy = cmd.getArg("-s");
+                String order = cmd.getArg("-o");
+
+                Leaderboard.SortType sortType = Leaderboard.SortType.BY_TOTAL_SCORE;
+                boolean isAscending = false;
+
+                if (sortBy != null) {
+                    switch (sortBy.toLowerCase()) {
+                        case "level":
+                            sortType = Leaderboard.SortType.BY_LEVEL;
+                            break;
+                        case "minigame":
+                            sortType = Leaderboard.SortType.BY_MINI_GAMES;
+                            break;
+                        case "dailyquest":
+                            sortType = Leaderboard.SortType.BY_DAILY_QUESTS;
+                            break;
+                        case "nondailyquest":
+                            sortType = Leaderboard.SortType.BY_NON_DAILY_QUESTS;
+                            break;
+                        case "scoring":
+                            sortType = Leaderboard.SortType.BY_SCORING_GAME;
+                            break;
+                        case "score":
+                        default:
+                            sortType = Leaderboard.SortType.BY_TOTAL_SCORE;
+                            break;
+                    }
                 }
 
-                List<User> topTen = leaderboard.getTopUsers(10);
-                view.showMessage("=== LEADERBOARD ===");
+                if (order != null && (order.equalsIgnoreCase("asc") || order.equalsIgnoreCase("ascending"))) {
+                    isAscending = true;
+                }
+
+                leaderboard.setSortType(sortType, isAscending);
+                List<User> sortedList = leaderboard.getSortedUsers();
+
+                view.showMessage("\n======================================== GLOBAL LEADERBOARD ========================================");
+                String header = String.format("%-4s | %-12s | %-11s | %-10s | %-9s | %-12s | %-16s | %-12s",
+                        "Rank", "Username", "Total Score", "Last Level", "Minigames", "Daily Quests", "Non-Daily Quests", "Scoring High");
+                view.showMessage(header);
+                view.showMessage("----------------------------------------------------------------------------------------------------");
+
                 int rank = 1;
-                for (User u : topTen) {
-                    view.showMessage(rank + ". " + u.getUsername() + " | Score: " + u.getScore());
+                for (User u : sortedList) {
+                    String levelStr = "S" + u.getLastSeasonCompleted() + "-L" + u.getLastLevelCompleted();
+                    String row = String.format("%-4d | %-12s | %-11d | %-10s | %-9d | %-12d | %-16d | %-12d",
+                            rank,
+                            u.getUsername(),
+                            u.getScore(),
+                            levelStr,
+                            u.getCompletedMiniGames(),
+                            u.getCompletedDailyQuests(),
+                            u.getCompletedNonDailyQuests(),
+                            u.getHighestScoreInScoringGame());
+                    view.showMessage(row);
                     rank++;
                 }
+                view.showMessage("====================================================================================================\n");
             } else {
-                view.showMessage("Unknown command in Leaderboard Menu.");
+                view.showMessage("Unknown command in Leaderboard Menu. Usage: menu leaderboard [-s score/level/minigame/dailyquest/nondailyquest/scoring] [-o asc/desc]");
             }
         }
     }

@@ -42,7 +42,6 @@ public class Bullet {
 
     public void move() {
         if (type == BulletType.LOB) {
-            // Lobbed bullets move slower and have arc
             column += 0.5;
         } else {
             column++;

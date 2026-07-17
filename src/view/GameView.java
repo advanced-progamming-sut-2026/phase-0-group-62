@@ -7,6 +7,7 @@ import model.LawnMower;
 import model.entities.plant.Plant;
 import model.entities.zombie.Zombie;
 import model.Sun;
+import model.enums.TileType;
 
 public class GameView extends View {
     public void showBoard(Board board) {
@@ -40,13 +41,20 @@ public class GameView extends View {
 
                 String cellContent = ".";
                 if (p != null) {
-                    cellContent = p.getName().substring(0, 1).toUpperCase() + p.getHealth();
+                    String freezeMark = p.isFrozen() ? "#" : "";
+                    cellContent = freezeMark + p.getName().substring(0, 1).toUpperCase() + p.getHealth();
                 } else if (z != null) {
                     cellContent = "Z" + z.getHealth();
                 } else if (s != null) {
                     cellContent = "*";
-                } else if (board.isTileGrave(r, c)) {
-                    cellContent = "G";
+                } else if (tile != null && tile.getType() == TileType.GRAVE) {
+                    if (tile.getSunReward() > 0) {
+                        cellContent = "G$";
+                    } else if (tile.hasPlantFoodReward()) {
+                        cellContent = "G*";
+                    } else {
+                        cellContent = "G";
+                    }
                 }
 
                 rowStr.append(String.format("[%5s] ", cellContent));

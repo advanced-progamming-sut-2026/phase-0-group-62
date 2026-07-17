@@ -19,6 +19,11 @@ public class Zombie {
     private boolean isAngry;
     private boolean isTorchLit;
     private double dynamiteTimer;
+    private int frozenIceHealth;
+    private boolean immuneToFreeze;
+
+    private int zombotanyJalapenoTimer;
+    private int izombieSunProductionTicks;
 
     public Zombie(String name, int health, double speed, int damage) {
         this.name = name;
@@ -39,9 +44,20 @@ public class Zombie {
         this.isAngry = false;
         this.isTorchLit = false;
         this.dynamiteTimer = 0.0;
+        this.frozenIceHealth = 0;
+        this.immuneToFreeze = false;
+        this.zombotanyJalapenoTimer = 0;
+        this.izombieSunProductionTicks = 0;
     }
 
     public void takeDamage(int amount, boolean bypassArmor) {
+        if (frozenIceHealth > 0) {
+            frozenIceHealth -= amount;
+            if (frozenIceHealth < 0) {
+                frozenIceHealth = 0;
+            }
+            return;
+        }
         if (bypassArmor || armorHealth <= 0) {
             health -= amount;
         } else {
@@ -61,11 +77,15 @@ public class Zombie {
     }
 
     public void applyChilled(double duration) {
-        this.chilledDuration = Math.max(this.chilledDuration, duration);
+        if (!immuneToFreeze) {
+            this.chilledDuration = Math.max(this.chilledDuration, duration);
+        }
     }
 
     public void applyFrozen(double duration) {
-        this.frozenDuration = Math.max(this.frozenDuration, duration);
+        if (!immuneToFreeze) {
+            this.frozenDuration = Math.max(this.frozenDuration, duration);
+        }
     }
 
     public void updateEffects(double deltaSeconds) {
@@ -91,7 +111,7 @@ public class Zombie {
     }
 
     public boolean hasEffect(ZombieEffect effect) {
-        if (effect == ZombieEffect.FROZEN && frozenDuration > 0) {
+        if (effect == ZombieEffect.FROZEN && (frozenDuration > 0 || frozenIceHealth > 0)) {
             return true;
         }
         if (effect == ZombieEffect.CHILLED && chilledDuration > 0) {
@@ -101,7 +121,15 @@ public class Zombie {
     }
 
     public void move() {
-        this.x -= getEffectiveSpeed();
+        double currentSpeed = getEffectiveSpeed();
+        if (name.equalsIgnoreCase("SquashZombie")) {
+            this.x -= (currentSpeed * 2.5);
+        } else {
+            this.x -= currentSpeed;
+        }
+        if (this.x < 0) {
+            this.x = 0;
+        }
     }
 
     public void setEnraged(boolean enraged) {
@@ -117,7 +145,7 @@ public class Zombie {
     }
 
     public double getEffectiveSpeed() {
-        if (frozenDuration > 0) {
+        if (frozenDuration > 0 || frozenIceHealth > 0) {
             return 0.0;
         }
         double currentSpeed = speed / 10.0;
@@ -130,116 +158,46 @@ public class Zombie {
         return currentSpeed;
     }
 
-    public String getName() {
-        return name;
+    public boolean isDodoRider() {
+        return name != null && (name.equalsIgnoreCase("dodo rider") || name.equalsIgnoreCase("dodo rider zombie"));
     }
 
-    public int getHealth() {
-        return health;
-    }
+    public String getName() { return name; }
+    public int getHealth() { return health; }
+    public int getMaxHealth() { return maxHealth; }
+    public double getSpeed() { return speed; }
+    public int getDamage() { return damage; }
+    public double getX() { return x; }
+    public void setX(double x) { this.x = x; }
+    public int getY() { return y; }
+    public void setY(int y) { this.y = y; }
+    public int getArmorHealth() { return armorHealth; }
+    public void setArmorHealth(int armorHealth) { this.armorHealth = armorHealth; this.maxArmorHealth = armorHealth; }
+    public int getMaxArmorHealth() { return maxArmorHealth; }
+    public void setMaxArmorHealth(int maxArmorHealth) { this.maxArmorHealth = maxArmorHealth; }
+    public String getArmorType() { return armorType; }
+    public void setArmorType(String armorType) { this.armorType = armorType; }
+    public boolean isGlowing() { return isGlowing; }
+    public void setGlowing(boolean glowing) { isGlowing = glowing; }
+    public boolean isHypnotized() { return isHypnotized; }
+    public void setHypnotized(boolean hypnotized) { isHypnotized = hypnotized; }
+    public double getChilledDuration() { return chilledDuration; }
+    public double getFrozenDuration() { return frozenDuration; }
+    public int getStolenSuns() { return stolenSuns; }
+    public void setStolenSuns(int stolenSuns) { this.stolenSuns = stolenSuns; }
+    public boolean isAngry() { return isAngry; }
+    public void setAngry(boolean angry) { this.isAngry = angry; }
+    public boolean isTorchLit() { return isTorchLit; }
+    public void setTorchLit(boolean torchLit) { this.isTorchLit = torchLit; }
+    public double getDynamiteTimer() { return dynamiteTimer; }
+    public void setDynamiteTimer(double dynamiteTimer) { this.dynamiteTimer = dynamiteTimer; }
+    public int getFrozenIceHealth() { return frozenIceHealth; }
+    public void setFrozenIceHealth(int frozenIceHealth) { this.frozenIceHealth = frozenIceHealth; }
+    public boolean isImmuneToFreeze() { return immuneToFreeze; }
+    public void setImmuneToFreeze(boolean immuneToFreeze) { this.immuneToFreeze = immuneToFreeze; }
 
-    public int getMaxHealth() {
-        return maxHealth;
-    }
-
-    public double getSpeed() {
-        return speed;
-    }
-
-    public int getDamage() {
-        return damage;
-    }
-
-    public double getX() {
-        return x;
-    }
-
-    public void setX(double x) {
-        this.x = x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public void setY(int y) {
-        this.y = y;
-    }
-
-    public int getArmorHealth() {
-        return armorHealth;
-    }
-
-    public void setArmorHealth(int armorHealth) {
-        this.armorHealth = armorHealth;
-        this.maxArmorHealth = armorHealth;
-    }
-
-    public int getMaxArmorHealth() {
-        return maxArmorHealth;
-    }
-
-    public String getArmorType() {
-        return armorType;
-    }
-
-    public void setArmorType(String armorType) {
-        this.armorType = armorType;
-    }
-
-    public boolean isGlowing() {
-        return isGlowing;
-    }
-
-    public void setGlowing(boolean glowing) {
-        isGlowing = glowing;
-    }
-
-    public boolean isHypnotized() {
-        return isHypnotized;
-    }
-
-    public void setHypnotized(boolean hypnotized) {
-        isHypnotized = hypnotized;
-    }
-
-    public double getChilledDuration() {
-        return chilledDuration;
-    }
-
-    public double getFrozenDuration() {
-        return frozenDuration;
-    }
-
-    public int getStolenSuns() {
-        return stolenSuns;
-    }
-
-    public void setStolenSuns(int stolenSuns) {
-        this.stolenSuns = stolenSuns;
-    }
-
-    public boolean isAngry() {
-        return isAngry;
-    }
-
-    public void setAngry(boolean angry) {
-        isAngry = angry;
-    }
-
-    public boolean isTorchLit() {
-        return isTorchLit;
-    }
-
-    public void setTorchLit(boolean torchLit) {
-        isTorchLit = torchLit;
-    }
-
-    public double getDynamiteTimer() {
-        return dynamiteTimer;
-    }
-
-    public void setDynamiteTimer(double dynamiteTimer) {
-        this.dynamiteTimer = dynamiteTimer;
-    }
+    public int getZombotanyJalapenoTimer() { return zombotanyJalapenoTimer; }
+    public void incrementJalapenoTimer() { this.zombotanyJalapenoTimer++; }
+    public int getIzombieSunProductionTicks() { return izombieSunProductionTicks; }
+    public void incrementIzombieSunTicks() { this.izombieSunProductionTicks++; }
 }

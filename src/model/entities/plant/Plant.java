@@ -22,6 +22,13 @@ public class Plant {
     private boolean hasSunToCollect;
     private int x;
     private int y;
+    private int freezeLevel;
+    private int iceHealth;
+
+    private int dx;
+    private int dy;
+    private int hitCount;
+    private boolean isBowlingBall;
 
     public Plant(int id, String name, String category, List<String> tags, int cost, int baseHp, int damage, double actionInterval, double recharge, String abilityType, double abilityValue, String plantFoodType, double plantFoodValue) {
         this.id = id;
@@ -41,6 +48,12 @@ public class Plant {
         this.maxHealth = baseHp;
         this.isBoosted = false;
         this.hasSunToCollect = false;
+        this.freezeLevel = 0;
+        this.iceHealth = 0;
+        this.dx = 0;
+        this.dy = 0;
+        this.hitCount = 0;
+        this.isBowlingBall = false;
     }
 
     public void initHealth() {
@@ -110,4 +123,71 @@ public class Plant {
     public void setX(int x) { this.x = x; }
     public int getY() { return y; }
     public void setY(int y) { this.y = y; }
+
+    public int getFreezeLevel() {
+        return freezeLevel;
+    }
+
+    public void setFreezeLevel(int freezeLevel) {
+        this.freezeLevel = freezeLevel;
+        if (this.freezeLevel >= 3) {
+            this.freezeLevel = 3;
+            this.iceHealth = 600;
+        } else if (this.freezeLevel < 0) {
+            this.freezeLevel = 0;
+            this.iceHealth = 0;
+        }
+    }
+
+    public int getIceHealth() {
+        return iceHealth;
+    }
+
+    public void setIceHealth(int iceHealth) {
+        this.iceHealth = iceHealth;
+        if (this.iceHealth <= 0) {
+            this.iceHealth = 0;
+            this.freezeLevel = 0;
+        }
+    }
+
+    public boolean isFrozen() {
+        return freezeLevel == 3;
+    }
+
+    public void damageIce(int amount) {
+        this.iceHealth -= amount;
+        if (this.iceHealth <= 0) {
+            this.iceHealth = 0;
+            this.freezeLevel = 0;
+        }
+    }
+
+    public void melt() {
+        this.iceHealth = 0;
+        this.freezeLevel = 0;
+    }
+
+    public boolean isAquatic() {
+        if (name != null && name.equalsIgnoreCase("Lily Pad")) {
+            return true;
+        }
+        if (tags != null) {
+            for (String tag : tags) {
+                if (tag.equalsIgnoreCase("aquatic") || tag.equalsIgnoreCase("water")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public int getDx() { return dx; }
+    public void setDx(int dx) { this.dx = dx; }
+    public int getDy() { return dy; }
+    public void setDy(int dy) { this.dy = dy; }
+    public int getHitCount() { return hitCount; }
+    public void incrementHitCount() { this.hitCount++; }
+    public boolean isBowlingBall() { return isBowlingBall; }
+    public void setBowlingBall(boolean bowlingBall) { this.isBowlingBall = bowlingBall; }
 }

@@ -20,8 +20,6 @@ public class Season {
         this.unlockedLevels = new ArrayList<>();
         this.specialFeatures = new ArrayList<>();
         this.description = "";
-        
-        // First level is always unlocked
         unlockedLevels.add("level_1");
     }
 
@@ -69,4 +67,10 @@ public class Season {
     public List<String> getSpecialFeatures() { return new ArrayList<>(specialFeatures); }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public void setupEnvironment(model.Game game) {}
+    public void handleWaveStart(model.Game game) {}
+    public void handleTick(model.Game game) {}
+    public int modifySpawnColumn(int currentWave, int totalWaves, int defaultColumn, int zombiesSpawned, model.Board board, int lane) { return defaultColumn; }
+    public boolean allowsNaturalSunDrop() { return true; }
 }

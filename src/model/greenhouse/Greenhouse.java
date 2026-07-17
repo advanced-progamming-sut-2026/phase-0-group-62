@@ -18,7 +18,6 @@ public class Greenhouse {
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
                 Pot pot = new Pot(row, col);
-                // Row 0 is unlocked by default, others locked
                 if (row > 0) {
                     pot.setLocked(true);
                 }
@@ -34,6 +33,9 @@ public class Greenhouse {
     }
 
     public Pot getPot(int row, int column) {
+        if (row < 0 || row >= ROWS || column < 0 || column >= COLS) {
+            return null;
+        }
         int index = row * COLS + column;
         if (index >= 0 && index < pots.size()) {
             return pots.get(index);

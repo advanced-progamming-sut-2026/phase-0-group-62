@@ -62,4 +62,46 @@ public class Board {
     public boolean isInBounds(int row, int column) {
         return row >= 0 && row < rows && column >= 0 && column < columns;
     }
+
+    public void setupGrave(int row, int col, int health, int sun, boolean pf) {
+        Tile tile = getTile(row, col);
+        if (tile != null) {
+            tile.setType(TileType.GRAVE);
+            tile.setGraveHealth(health);
+            tile.setSunReward(sun);
+            tile.setHasPlantFoodReward(pf);
+        }
+    }
+
+    public void removeGrave(int row, int col) {
+        Tile tile = getTile(row, col);
+        if (tile != null) {
+            tile.setType(TileType.GRASS);
+            tile.setGraveHealth(0);
+            tile.setSunReward(0);
+            tile.setHasPlantFoodReward(false);
+        }
+    }
+
+    public void setupSlideway(int row, int col, int offset) {
+        Tile tile = getTile(row, col);
+        if (tile != null) {
+            tile.setSlideway(true);
+            tile.setSlideRowOffset(offset);
+        }
+    }
+
+    public void setupLowBeach(int row, int col) {
+        Tile tile = getTile(row, col);
+        if (tile != null) {
+            tile.setLowBeach(true);
+        }
+    }
+
+    public void setupNecromancy(int row, int col) {
+        Tile tile = getTile(row, col);
+        if (tile != null) {
+            tile.setNecromancyTile(true);
+        }
+    }
 }

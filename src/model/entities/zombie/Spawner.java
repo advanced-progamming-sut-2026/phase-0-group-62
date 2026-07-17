@@ -4,6 +4,7 @@ import model.Board;
 import model.Tile;
 import model.entities.zombie.factory.ZombieFactory;
 import model.enums.Difficulty;
+import model.season.Season;
 
 import java.util.*;
 
@@ -19,6 +20,7 @@ public class Spawner {
     private int zombiesSpawnedInWave;
     public int ticksSinceLastSpawn;
     private int spawnInterval;
+    private Season currentSeason;
 
     public Spawner(Board board, int totalWaves, Difficulty difficulty) {
         this.board = board;
@@ -140,6 +142,10 @@ public class Spawner {
         }
 
         int column = board.getColumns() - 1;
+        if (currentSeason != null) {
+            column = currentSeason.modifySpawnColumn(currentWave, totalWaves, column, zombiesSpawnedInWave, board, lane);
+        }
+
         Zombie zombie = ZombieFactory.createZombieAtColumn(type, lane, column);
         if (zombie != null) {
             if (new Random().nextInt(100) < 5) {
@@ -193,4 +199,12 @@ public class Spawner {
     }
 
     public void setSpawnInterval(int spawnInterval) { this.spawnInterval = spawnInterval; }
+
+    public Season getCurrentSeason() {
+        return currentSeason;
+    }
+
+    public void setCurrentSeason(Season currentSeason) {
+        this.currentSeason = currentSeason;
+    }
 }

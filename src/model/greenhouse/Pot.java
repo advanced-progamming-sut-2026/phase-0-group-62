@@ -12,14 +12,13 @@ public class Pot {
     private boolean readyToHarvest;
     private boolean isGrowing;
 
-    // Growth times in milliseconds
-    private static final long MARIGOLD_GROWTH_TIME = 2 * 60 * 60 * 1000; // 2 hours
-    private static final long RANDOM_PLANT_GROWTH_TIME = 8 * 60 * 60 * 1000; // 8 hours
+    private static final long MARIGOLD_GROWTH_TIME = 2L * 60 * 60 * 1000;
+    private static final long RANDOM_PLANT_GROWTH_TIME = 8L * 60 * 60 * 1000;
 
     public Pot(int row, int column) {
         this.row = row;
         this.column = column;
-        this.locked = row > 0; // First row unlocked by default
+        this.locked = row > 0;
         this.plant = null;
         this.readyToHarvest = false;
         this.isGrowing = false;
@@ -36,10 +35,8 @@ public class Pot {
         this.plantedTime = System.currentTimeMillis();
         this.isGrowing = true;
         this.readyToHarvest = false;
-        
-        // Set growth time based on plant type
-        if (plant.getName().equalsIgnoreCase("Marigold") || 
-            plant.getName().equalsIgnoreCase("marigold")) {
+
+        if (plant.getName().equalsIgnoreCase("Marigold")) {
             this.growthTime = MARIGOLD_GROWTH_TIME;
         } else {
             this.growthTime = RANDOM_PLANT_GROWTH_TIME;
@@ -48,7 +45,7 @@ public class Pot {
 
     public void update() {
         if (!isGrowing || readyToHarvest) return;
-        
+
         long elapsed = System.currentTimeMillis() - plantedTime;
         if (elapsed >= growthTime) {
             readyToHarvest = true;
@@ -64,29 +61,30 @@ public class Pot {
         growthTime = 0;
     }
 
-    public void accelerateGrowth(long amount) {
+    public void accelerateGrowth() {
         if (!isGrowing || readyToHarvest) return;
-        
-        long newPlantedTime = plantedTime + amount;
-        long elapsed = System.currentTimeMillis() - newPlantedTime;
-        if (elapsed >= growthTime) {
-            readyToHarvest = true;
-            isGrowing = false;
-        } else {
-            plantedTime = newPlantedTime;
-        }
+        this.plantedTime = System.currentTimeMillis() - this.growthTime;
+        this.readyToHarvest = true;
+        this.isGrowing = false;
+    }
+
+    public int getDiamondCostToAccelerate() {
+        long remaining = getRemainingTime();
+        if (remaining <= 0) return 0;
+        double hours = (double) remaining / (1000.0 * 60.0 * 60.0);
+        return (int) Math.ceil(hours);
     }
 
     public double getGrowthProgress() {
-        if (!isGrowing || readyToHarvest) return 1.0;
-        if (plantedTime == 0) return 0.0;
-        
+        if (readyToHarvest) return 1.0;
+        if (!isGrowing || plantedTime == 0) return 0.0;
+
         long elapsed = System.currentTimeMillis() - plantedTime;
         return Math.min(1.0, (double) elapsed / growthTime);
     }
 
     public long getRemainingTime() {
-        if (!isGrowing || readyToHarvest) return 0;
+        if (readyToHarvest || !isGrowing) return 0;
         long elapsed = System.currentTimeMillis() - plantedTime;
         return Math.max(0, growthTime - elapsed);
     }

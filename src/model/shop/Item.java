@@ -4,9 +4,9 @@ public class Item {
     private String id;
     private String name;
     private int price;
-    private String currencyType; // "coin" or "diamond"
-    private int quantity; // For bundled items
-    private String bonusType; // For exchange items
+    private String currencyType;
+    private int quantity;
+    private String bonusType;
     private int bonusAmount;
     private boolean isPermanent;
 
@@ -23,11 +23,16 @@ public class Item {
         this.isPermanent = true;
     }
 
+    public Item(String name, int price, String currencyType, int quantity) {
+        this(name, price, currencyType);
+        this.quantity = quantity;
+    }
+
     public Item(String name, int price, String currencyType, int quantity, String bonusType) {
         this(name, price, currencyType);
         this.quantity = quantity;
         this.bonusType = bonusType;
-        this.bonusAmount = price;
+        this.bonusAmount = 500;
     }
 
     public String getId() { return id; }

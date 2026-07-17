@@ -38,8 +38,8 @@ public class ShootBehavior {
         ELECTRIC        // Chain lightning (Lightning Reed)
     }
 
-    public ShootBehavior(ShootType shootType, int damage, int range, boolean pierce, 
-                        boolean explosive, boolean homing, int splashRadius, int cooldown) {
+    public ShootBehavior(ShootType shootType, int damage, int range, boolean pierce,
+                         boolean explosive, boolean homing, int splashRadius, int cooldown) {
         this.shootType = shootType;
         this.damage = damage;
         this.range = range;
@@ -115,7 +115,6 @@ public class ShootBehavior {
     public int getCurrentCooldown() { return currentCooldown; }
     public void setCurrentCooldown(int currentCooldown) { this.currentCooldown = currentCooldown; }
 
-    // Builder pattern for easy creation
     public static class Builder {
         private ShootType shootType;
         private int damage = 20;

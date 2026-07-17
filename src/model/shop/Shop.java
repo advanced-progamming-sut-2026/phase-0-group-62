@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class Shop {
     private final List<Item> items;
     private final List<Item> permanentItems;
     private final Map<String, DailyOffer> dailyOffers;
     private long lastRefreshTime;
+    private String lastRefreshDateStr;
 
     public static class DailyOffer {
         private String id;
@@ -35,8 +37,8 @@ public class Shop {
         public int getQuantity() { return quantity; }
         public boolean isPurchased() { return purchased; }
         public void setPurchased(boolean purchased) { this.purchased = purchased; }
-        public int getDiscountedPrice() { 
-            return (int) (price * (1 - discountPercentage / 100.0)); 
+        public int getDiscountedPrice() {
+            return (int) (price * (1 - discountPercentage / 100.0));
         }
     }
 
@@ -45,35 +47,53 @@ public class Shop {
         this.permanentItems = new ArrayList<>();
         this.dailyOffers = new HashMap<>();
         this.lastRefreshTime = System.currentTimeMillis();
+        this.lastRefreshDateStr = java.time.LocalDate.now().toString();
         initializeShop();
     }
 
     private void initializeShop() {
-        // Permanent items
-        permanentItems.add(new Item("Pot", 2000));
-        permanentItems.add(new Item("Plant Food", 3, "diamond"));
-        permanentItems.add(new Item("Random Seed Pack", 1000));
-        permanentItems.add(new Item("Choice Seed Pack", 5, "diamond"));
-        permanentItems.add(new Item("Currency Exchange", 5, "diamond", 500, "coin"));
-        
-        // Add to items list
+        Item pot = new Item("Pot", 2000, "coin", 1);
+        Item pf = new Item("Plant Food", 3, "diamond", 1);
+        Item randPack = new Item("Random Seed Pack", 1000, "coin", 5);
+        Item choicePack = new Item("Choice Seed Pack", 5, "diamond", 10);
+        Item exchange = new Item("Currency Exchange", 5, "diamond", 500, "coin");
+
+        permanentItems.add(pot);
+        permanentItems.add(pf);
+        permanentItems.add(randPack);
+        permanentItems.add(choicePack);
+        permanentItems.add(exchange);
+
         items.addAll(permanentItems);
-        
-        // Initialize daily offers
         refreshDailyOffers();
+    }
+
+    public void checkAndRefreshDailyOffers() {
+        String today = java.time.LocalDate.now().toString();
+        if (!today.equals(lastRefreshDateStr)) {
+            refreshDailyOffers();
+            lastRefreshDateStr = today;
+        }
     }
 
     public void refreshDailyOffers() {
         dailyOffers.clear();
-        // Generate random daily offer
-        String[] plants = {"peashooter", "sunflower", "wallnut", "snowpea", "repeater"};
-        String plant = plants[(int) (Math.random() * plants.length)];
-        dailyOffers.put(plant, new DailyOffer(
-            "daily_" + System.currentTimeMillis(),
-            plant,
-            2000,
-            20,
-            10
+        List<String> unlocked = new ArrayList<>();
+        if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+            unlocked = model.UserSession.getCurrentUser().getUnlockedPlants();
+        }
+        if (unlocked == null || unlocked.isEmpty()) {
+            unlocked = new ArrayList<>();
+            unlocked.add("PeaShooter");
+        }
+        String plant = unlocked.get(new Random().nextInt(unlocked.size()));
+        String today = java.time.LocalDate.now().toString();
+        dailyOffers.put(plant.toLowerCase(), new DailyOffer(
+                "daily_" + today.replace("-", ""),
+                plant,
+                2000,
+                20,
+                10
         ));
         lastRefreshTime = System.currentTimeMillis();
     }
@@ -96,22 +116,24 @@ public class Shop {
     }
 
     public DailyOffer getDailyOffer(String plantType) {
-        return dailyOffers.get(plantType);
+        checkAndRefreshDailyOffers();
+        return dailyOffers.get(plantType.toLowerCase());
     }
 
     public Map<String, DailyOffer> getDailyOffers() {
+        checkAndRefreshDailyOffers();
         return new HashMap<>(dailyOffers);
     }
 
     public boolean purchaseItem(String itemId, int quantity) {
         Item item = getItemById(itemId);
         if (item == null) return false;
-        // Purchase logic handled by controller
         return true;
     }
 
     public boolean purchaseDailyOffer(String plantType) {
-        DailyOffer offer = dailyOffers.get(plantType);
+        checkAndRefreshDailyOffers();
+        DailyOffer offer = dailyOffers.get(plantType.toLowerCase());
         if (offer == null || offer.isPurchased()) return false;
         offer.setPurchased(true);
         return true;
@@ -122,7 +144,7 @@ public class Shop {
     }
 
     public boolean needsRefresh() {
-        // Refresh daily offers every 24 hours
-        return System.currentTimeMillis() - lastRefreshTime > 24 * 60 * 60 * 1000;
+        String today = java.time.LocalDate.now().toString();
+        return !today.equals(lastRefreshDateStr);
     }
 }

@@ -21,6 +21,16 @@ public class User {
     private List<String> unlockedPlants = new ArrayList<>();
     private List<String> observedZombies = new ArrayList<>();
     private Map<String, Integer> plantLevels = new HashMap<>();
+    private Map<String, Boolean> greenhouseBoosts = new HashMap<>();
+    private int plantFoodInventory;
+    private Map<String, Integer> seedPackets = new HashMap<>();
+
+    private int lastSeasonCompleted;
+    private int lastLevelCompleted;
+    private int completedMiniGames;
+    private int completedDailyQuests;
+    private int completedNonDailyQuests;
+    private int highestScoreInScoringGame;
 
     public User(String username, String passwordHash, String nickname, String email, Gender gender , String securityQuestion , String securityAnswer) {
         this.username = username;
@@ -34,6 +44,13 @@ public class User {
         this.gems = 0;
         this.unlockedPlants.add("PeaShooter");
         this.plantLevels.put("PeaShooter", 1);
+        this.plantFoodInventory = 0;
+        this.lastSeasonCompleted = 1;
+        this.lastLevelCompleted = 1;
+        this.completedMiniGames = 0;
+        this.completedDailyQuests = 0;
+        this.completedNonDailyQuests = 0;
+        this.highestScoreInScoringGame = 0;
     }
 
     public String getUsername() {
@@ -104,6 +121,48 @@ public class User {
         return plantLevels;
     }
 
+    public Map<String, Boolean> getGreenhouseBoosts() {
+        if (greenhouseBoosts == null) {
+            greenhouseBoosts = new HashMap<>();
+        }
+        return greenhouseBoosts;
+    }
+
+    public int getPlantFoodInventory() {
+        return plantFoodInventory;
+    }
+
+    public Map<String, Integer> getSeedPackets() {
+        if (seedPackets == null) {
+            seedPackets = new HashMap<>();
+        }
+        return seedPackets;
+    }
+
+    public int getLastSeasonCompleted() {
+        return lastSeasonCompleted;
+    }
+
+    public int getLastLevelCompleted() {
+        return lastLevelCompleted;
+    }
+
+    public int getCompletedMiniGames() {
+        return completedMiniGames;
+    }
+
+    public int getCompletedDailyQuests() {
+        return completedDailyQuests;
+    }
+
+    public int getCompletedNonDailyQuests() {
+        return completedNonDailyQuests;
+    }
+
+    public int getHighestScoreInScoringGame() {
+        return highestScoreInScoringGame;
+    }
+
     public void setUsername(String username) {
         this.username = username;
     }
@@ -154,6 +213,42 @@ public class User {
 
     public void setPlantLevels(Map<String, Integer> plantLevels) {
         this.plantLevels = plantLevels;
+    }
+
+    public void setGreenhouseBoosts(Map<String, Boolean> greenhouseBoosts) {
+        this.greenhouseBoosts = greenhouseBoosts;
+    }
+
+    public void setPlantFoodInventory(int plantFoodInventory) {
+        this.plantFoodInventory = plantFoodInventory;
+    }
+
+    public void setSeedPackets(Map<String, Integer> seedPackets) {
+        this.seedPackets = seedPackets;
+    }
+
+    public void setLastSeasonCompleted(int lastSeasonCompleted) {
+        this.lastSeasonCompleted = lastSeasonCompleted;
+    }
+
+    public void setLastLevelCompleted(int lastLevelCompleted) {
+        this.lastLevelCompleted = lastLevelCompleted;
+    }
+
+    public void setCompletedMiniGames(int completedMiniGames) {
+        this.completedMiniGames = completedMiniGames;
+    }
+
+    public void setCompletedDailyQuests(int completedDailyQuests) {
+        this.completedDailyQuests = completedDailyQuests;
+    }
+
+    public void setCompletedNonDailyQuests(int completedNonDailyQuests) {
+        this.completedNonDailyQuests = completedNonDailyQuests;
+    }
+
+    public void setHighestScoreInScoringGame(int highestScoreInScoringGame) {
+        this.highestScoreInScoringGame = highestScoreInScoringGame;
     }
 
     public void addScore(int amount) {

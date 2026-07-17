@@ -21,13 +21,12 @@ public class ScoreGame {
     private Map<String, Integer> plantUsage;
     private Map<String, Integer> zombieKills;
 
-    // Scoring patterns
     public enum ScoringPattern {
-        AGGRESSIVE,     // Bonus for killing zombies quickly
-        DEFENSIVE,      // Bonus for surviving with minimal damage
-        EFFICIENT,      // Bonus for using minimal sun
-        COMBO_MASTER,   // Bonus for combos
-        PERFECTIONIST   // Bonus for not losing any plants
+        AGGRESSIVE,
+        DEFENSIVE,
+        EFFICIENT,
+        COMBO_MASTER,
+        PERFECTIONIST
     }
 
     private Set<ScoringPattern> activePatterns;
@@ -49,8 +48,6 @@ public class ScoreGame {
         this.activePatterns = new HashSet<>();
     }
 
-    // --- Scoring Methods ---
-
     public void onZombieKilled(Zombie zombie, String plantType) {
         int basePoints = 10;
         int healthBonus = zombie.getMaxHealth() / 20;
@@ -61,19 +58,14 @@ public class ScoreGame {
         totalScore += points;
         zombiesKilled++;
 
-        // Track zombie kill
         zombieKills.put(zombie.getType(), zombieKills.getOrDefault(zombie.getType(), 0) + 1);
-
-        // Track plant usage
         plantUsage.put(plantType, plantUsage.getOrDefault(plantType, 0) + 1);
 
-        // Combo system
         currentCombo++;
         if (currentCombo > maxCombo) {
             maxCombo = currentCombo;
         }
 
-        // Check scoring patterns
         checkPatterns();
     }
 
@@ -117,30 +109,23 @@ public class ScoreGame {
         diamondsEarned += amount;
     }
 
-    // --- Scoring Patterns ---
-
     private void checkPatterns() {
-        // Aggressive: Kill 10 zombies quickly
         if (zombiesKilled >= 10 && totalScore > 200) {
             activePatterns.add(ScoringPattern.AGGRESSIVE);
         }
 
-        // Defensive: Take minimal damage
         if (totalDamageTaken < 100 && wavesSurvived >= 3) {
             activePatterns.add(ScoringPattern.DEFENSIVE);
         }
 
-        // Efficient: Place 5+ plants and kill 5+ zombies
         if (plantsPlaced >= 5 && zombiesKilled >= 5) {
             activePatterns.add(ScoringPattern.EFFICIENT);
         }
 
-        // Combo Master: Get 10+ combo
         if (maxCombo >= 10) {
             activePatterns.add(ScoringPattern.COMBO_MASTER);
         }
 
-        // Perfectionist: No plants lost
         if (plantsPlaced > 0 && totalDamageTaken == 0) {
             activePatterns.add(ScoringPattern.PERFECTIONIST);
         }
@@ -149,22 +134,18 @@ public class ScoreGame {
     public int getFinalScore() {
         int finalScore = totalScore;
 
-        // Pattern bonuses
         if (activePatterns.contains(ScoringPattern.AGGRESSIVE)) finalScore += 50;
         if (activePatterns.contains(ScoringPattern.DEFENSIVE)) finalScore += 40;
         if (activePatterns.contains(ScoringPattern.EFFICIENT)) finalScore += 30;
         if (activePatterns.contains(ScoringPattern.COMBO_MASTER)) finalScore += 60;
         if (activePatterns.contains(ScoringPattern.PERFECTIONIST)) finalScore += 80;
 
-        // Efficiency bonus
-        int efficiency = (sunsCollected > 0 && plantsPlaced > 0) 
-            ? (sunsCollected / plantsPlaced) * 2 : 0;
+        int efficiency = (sunsCollected > 0 && plantsPlaced > 0)
+                ? (sunsCollected / plantsPlaced) * 2 : 0;
         finalScore += Math.min(efficiency, 50);
 
         return finalScore;
     }
-
-    // --- Getters ---
 
     public int getTotalScore() { return totalScore; }
     public int getZombiesKilled() { return zombiesKilled; }
@@ -180,8 +161,6 @@ public class ScoreGame {
     public Map<String, Integer> getPlantUsage() { return new HashMap<>(plantUsage); }
     public Map<String, Integer> getZombieKills() { return new HashMap<>(zombieKills); }
     public Set<ScoringPattern> getActivePatterns() { return new HashSet<>(activePatterns); }
-
-    // --- Reset ---
 
     public void reset() {
         totalScore = 0;
