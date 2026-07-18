@@ -13,7 +13,7 @@ public class BigWaveBeach extends Season {
     private int waterLevel = 2;
 
     public BigWaveBeach() {
-        super("BigWaveBeach", 10);
+        super("BigWaveBeach", 4);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class BigWaveBeach extends Season {
     public void handleWaveStart(Game game) {
         Board board = game.getBoard();
         Random rand = new Random();
-        waterLevel = rand.nextInt(4) + 2;
+        waterLevel = rand.nextInt(4) + 2; // جزر و مد بین ۲ تا ۵ ستون نوسان دارد
         System.out.println("The tide changed! Water level is now " + waterLevel + " columns wide.");
         updateWaterTiles(board);
 
@@ -52,7 +52,7 @@ public class BigWaveBeach extends Season {
                 if (!isAquatic && !hasLilyPad) {
                     game.getActivePlants().remove(p);
                     t.setPlant(null);
-                    System.out.println("Plant " + p.getName() + " at (" + p.getX() + ", " + p.getY() + ") drowned in the rising tide!");
+                    System.out.println("Plant " + p.getName() + " drowned in the rising tide!");
                 }
             }
         }

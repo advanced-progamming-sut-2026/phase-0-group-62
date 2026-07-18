@@ -25,13 +25,15 @@ public class GreenhouseController {
         view.showGreenhouseState(greenhouse);
     }
 
-    public String plantPot(int row, int col) {
+    public String plantPot(int x, int y) {
+        int row = y - 1;
+        int col = x - 1;
         Pot pot = greenhouse.getPot(row, col);
         if (pot == null) {
-            return "Error: Invalid pot coordinates.";
+            return "Error: Invalid pot coordinates! x must be 1-5 and y must be 1-4.";
         }
         if (pot.isLocked()) {
-            return "Error: This pot is locked! Unlock it first using coins.";
+            return "Error: This pot is locked!";
         }
         if (!pot.isEmpty()) {
             return "Error: This pot is already occupied.";
@@ -44,7 +46,7 @@ public class GreenhouseController {
 
         Random rand = new Random();
         Plant plant;
-        if (rand.nextBoolean()) {
+        if (rand.nextInt(100) < 50) {
             plant = PlantFactory.createPlant("Marigold");
             if (plant == null) {
                 plant = new Plant(999, "Marigold", "Marigold", null, 0, 100, 0, 0, 0, null, 0, null, 0);
@@ -63,14 +65,17 @@ public class GreenhouseController {
         }
 
         pot.plant(plant);
-        return "Successfully planted " + plant.getName() + " at Pot (" + row + ", " + col + ").";
+        FileManager.updateUser(currentUser);
+        return "Successfully planted " + plant.getName() + " at Pot (" + x + ", " + y + ").";
     }
 
-    public String collectPot(int row, int col) {
+    public String collectPot(int x, int y) {
         greenhouse.updateAllPots();
+        int row = y - 1;
+        int col = x - 1;
         Pot pot = greenhouse.getPot(row, col);
         if (pot == null) {
-            return "Error: Invalid pot coordinates.";
+            return "Error: Invalid pot coordinates!";
         }
         if (pot.isLocked()) {
             return "Error: This pot is locked.";
@@ -96,14 +101,16 @@ public class GreenhouseController {
 
         pot.harvest();
         FileManager.updateUser(currentUser);
-        return "Harvested " + plant.getName() + "! Received 500 coins. Permanent boost pocket updated.";
+        return "Harvested " + plant.getName() + "! Received 500 coins.";
     }
 
-    public String acceleratePot(int row, int col) {
+    public String acceleratePot(int x, int y) {
         greenhouse.updateAllPots();
+        int row = y - 1;
+        int col = x - 1;
         Pot pot = greenhouse.getPot(row, col);
         if (pot == null) {
-            return "Error: Invalid pot coordinates.";
+            return "Error: Invalid pot coordinates!";
         }
         if (pot.isLocked()) {
             return "Error: This pot is locked.";
@@ -112,7 +119,7 @@ public class GreenhouseController {
             return "Error: This pot is empty.";
         }
         if (pot.isReadyToHarvest()) {
-            return "Error: This plant is already fully grown and ready to harvest.";
+            return "Error: This plant is already fully grown.";
         }
 
         User currentUser = UserSession.getCurrentUser();
@@ -122,19 +129,21 @@ public class GreenhouseController {
 
         int cost = pot.getDiamondCostToAccelerate();
         if (currentUser.getGems() < cost) {
-            return "Error: Not enough gems! Required: " + cost + " gems. You have: " + currentUser.getGems();
+            return "Error: Not enough gems! Required: " + cost + " gems.";
         }
 
         currentUser.setGems(currentUser.getGems() - cost);
         pot.accelerateGrowth();
         FileManager.updateUser(currentUser);
-        return "Accelerated growth! Spent " + cost + " gems. Plant is now ready to harvest.";
+        return "Accelerated growth! Spent " + cost + " gems.";
     }
 
-    public String unlockPot(int row, int col) {
+    public String unlockPot(int x, int y) {
+        int row = y - 1;
+        int col = x - 1;
         Pot pot = greenhouse.getPot(row, col);
         if (pot == null) {
-            return "Error: Invalid pot coordinates.";
+            return "Error: Invalid pot coordinates!";
         }
         if (!pot.isLocked()) {
             return "Error: This pot is already unlocked.";
@@ -153,6 +162,6 @@ public class GreenhouseController {
         currentUser.setCoins(currentUser.getCoins() - unlockCost);
         pot.setLocked(false);
         FileManager.updateUser(currentUser);
-        return "Successfully unlocked pot at (" + row + ", " + col + ") for " + unlockCost + " coins.";
+        return "Successfully unlocked pot at (" + x + ", " + y + ") for " + unlockCost + " coins.";
     }
 }

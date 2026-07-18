@@ -1,5 +1,7 @@
 package model.greenhouse;
 
+import model.User;
+import model.UserSession;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,18 +12,19 @@ public class Greenhouse {
     private static final int COLS = 5;
 
     public Greenhouse() {
-        this.pots = new ArrayList<>();
-        initializePots();
-    }
-
-    private void initializePots() {
-        for (int row = 0; row < ROWS; row++) {
-            for (int col = 0; col < COLS; col++) {
-                Pot pot = new Pot(row, col);
-                if (row > 0) {
-                    pot.setLocked(true);
+        User currentUser = UserSession.getCurrentUser();
+        if (currentUser != null) {
+            this.pots = currentUser.getGreenhousePots();
+        } else {
+            this.pots = new ArrayList<>();
+            for (int row = 0; row < ROWS; row++) {
+                for (int col = 0; col < COLS; col++) {
+                    Pot pot = new Pot(row, col);
+                    if (row > 0) {
+                        pot.setLocked(true);
+                    }
+                    pots.add(pot);
                 }
-                pots.add(pot);
             }
         }
     }

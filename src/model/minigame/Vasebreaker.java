@@ -1,5 +1,8 @@
 package model.minigame;
 
+import model.Game;
+import model.Tile;
+
 public class Vasebreaker extends MiniGame {
     private String[][] vaseContents;
     private boolean[][] vaseBroken;
@@ -50,4 +53,24 @@ public class Vasebreaker extends MiniGame {
     public int getTotalVases() { return totalVases; }
     public int getBrokenVasesCount() { return brokenVasesCount; }
     public boolean isVictoryConditionMet() { return brokenVasesCount >= totalVases; }
+
+    public void updateMiniGame(Game game) {
+        for (int r = 0; r < game.getBoard().getRows(); r++) {
+            for (int c = 0; c < game.getBoard().getColumns(); c++) {
+                Tile tile = game.getBoard().getTile(r, c);
+                if (tile.getTemporarySeedPacket() != null) {
+                    tile.setSeedPacketTimer(tile.getSeedPacketTimer() - 1);
+                    if (tile.getSeedPacketTimer() <= 0) {
+                        System.out.println("Vasebreaker: Temporary Seed Packet for " + tile.getTemporarySeedPacket() + " at (" + c + ", " + r + ") disappeared!");
+                        tile.setTemporarySeedPacket(null);
+                    }
+                }
+            }
+        }
+        if (isVictoryConditionMet() && game.getActiveZombies().isEmpty()) {
+            game.setWon(true);
+            game.stop();
+            System.out.println("Vasebreaker: All vases broken and zombies eliminated! Victory!");
+        }
+    }
 }

@@ -10,7 +10,7 @@ import view.greenhouse.GreenhouseView;
 import util.ParsedCommand;
 
 public class GreenhouseMenu extends Menu {
-    private final Greenhouse greenhouse;
+    private Greenhouse greenhouse;
     private final GreenhouseView greenhouseView;
     private final GreenhouseController greenhouseController;
     private final Shop shop;
@@ -29,7 +29,6 @@ public class GreenhouseMenu extends Menu {
 
     @Override
     public void runMenu() {
-        CommandParser parser = new CommandParser();
         while (true) {
             String prompt = inShopMode ? "ShopMenu" : "GreenhouseMenu";
             String input = view.getInput(prompt);
@@ -45,79 +44,77 @@ public class GreenhouseMenu extends Menu {
                 continue;
             }
 
-            ParsedCommand cmd = parser.parse(input);
-            String action = cmd.getAction();
+            String lowerInput = input.trim().toLowerCase();
+
+            if (lowerInput.startsWith("cheat add") || lowerInput.startsWith("menu cheat add")) {
+                CommandParser parser = new CommandParser();
+                ParsedCommand cmd = parser.parse(input);
+                view.showMessage(controller.processPlay(cmd, "cheat add"));
+                continue;
+            }
 
             if (!inShopMode) {
-                if (action.equalsIgnoreCase("enter shop")) {
+                if (lowerInput.equals("enter shop")) {
                     inShopMode = true;
                     view.showMessage("Welcome to the shop! Permanent items and daily offers are available.");
-                } else if (action.equalsIgnoreCase("show greenhouse")) {
+                } else if (lowerInput.equals("show greenhouse")) {
                     greenhouseController.showGreenhouse();
-                } else if (action.equalsIgnoreCase("grow")) {
-                    String rowStr = cmd.getArg("-x");
-                    String colStr = cmd.getArg("-y");
-                    if (rowStr == null || colStr == null) {
-                        view.showMessage("Usage: grow -x <row> -y <col>");
-                        continue;
-                    }
+                } else if (lowerInput.startsWith("plant pot at")) {
                     try {
-                        int r = Integer.parseInt(rowStr);
-                        int c = Integer.parseInt(colStr);
-                        view.showMessage(greenhouseController.plantPot(r, c));
-                    } catch (NumberFormatException e) {
-                        view.showMessage("Error: Coordinates must be integers.");
+                        String loc = input.substring(input.indexOf("(")).replace("(", "").replace(")", "").trim();
+                        String[] parts = loc.split(",");
+                        int x = Integer.parseInt(parts[0].trim());
+                        int y = Integer.parseInt(parts[1].trim());
+                        view.showMessage(greenhouseController.plantPot(x, y));
+                    } catch (Exception e) {
+                        view.showMessage("Invalid format! Use: plant pot at (<x>, <y>)");
                     }
-                } else if (action.equalsIgnoreCase("collect")) {
-                    String rowStr = cmd.getArg("-x");
-                    String colStr = cmd.getArg("-y");
-                    if (rowStr == null || colStr == null) {
-                        view.showMessage("Usage: collect -x <row> -y <col>");
-                        continue;
-                    }
+                } else if (lowerInput.startsWith("collect")) {
                     try {
-                        int r = Integer.parseInt(rowStr);
-                        int c = Integer.parseInt(colStr);
-                        view.showMessage(greenhouseController.collectPot(r, c));
-                    } catch (NumberFormatException e) {
-                        view.showMessage("Error: Coordinates must be integers.");
+                        String loc = input.substring(input.indexOf("(")).replace("(", "").replace(")", "").trim();
+                        String[] parts = loc.split(",");
+                        int x = Integer.parseInt(parts[0].trim());
+                        int y = Integer.parseInt(parts[1].trim());
+                        view.showMessage(greenhouseController.collectPot(x, y));
+                    } catch (Exception e) {
+                        view.showMessage("Invalid format! Use: collect (<x>, <y>)");
                     }
-                } else if (action.equalsIgnoreCase("cheat add") || action.equalsIgnoreCase("menu cheat add")) {
-                    view.showMessage(controller.processPlay(cmd, "cheat add"));
+                } else if (lowerInput.startsWith("grow")) {
+                    try {
+                        String loc = input.substring(input.indexOf("(")).replace("(", "").replace(")", "").trim();
+                        String[] parts = loc.split(",");
+                        int x = Integer.parseInt(parts[0].trim());
+                        int y = Integer.parseInt(parts[1].trim());
+                        view.showMessage(greenhouseController.acceleratePot(x, y));
+                    } catch (Exception e) {
+                        view.showMessage("Invalid format! Use: grow (<x>, <y>)");
+                    }
+                } else if (lowerInput.startsWith("unlock")) {
+                    try {
+                        String loc = input.substring(input.indexOf("(")).replace("(", "").replace(")", "").trim();
+                        String[] parts = loc.split(",");
+                        int x = Integer.parseInt(parts[0].trim());
+                        int y = Integer.parseInt(parts[1].trim());
+                        view.showMessage(greenhouseController.unlockPot(x, y));
+                    } catch (Exception e) {
+                        view.showMessage("Invalid format! Use: unlock (<x>, <y>)");
+                    }
                 } else {
-                    String rowStr = cmd.getArg("-x");
-                    String colStr = cmd.getArg("-y");
-                    if (input.toLowerCase().startsWith("unlock") && rowStr != null && colStr != null) {
-                        try {
-                            int r = Integer.parseInt(rowStr);
-                            int c = Integer.parseInt(colStr);
-                            view.showMessage(greenhouseController.unlockPot(r, c));
-                        } catch (NumberFormatException e) {
-                            view.showMessage("Error: Coordinates must be integers.");
-                        }
-                    } else if (input.toLowerCase().startsWith("accelerate") && rowStr != null && colStr != null) {
-                        try {
-                            int r = Integer.parseInt(rowStr);
-                            int c = Integer.parseInt(colStr);
-                            view.showMessage(greenhouseController.acceleratePot(r, c));
-                        } catch (NumberFormatException e) {
-                            view.showMessage("Error: Coordinates must be integers.");
-                        }
-                    } else {
-                        view.showMessage("Unknown or incomplete command in Greenhouse Menu.");
-                    }
+                    view.showMessage("Unknown or incomplete command in Greenhouse Menu.");
                 }
             } else {
+                CommandParser parser = new CommandParser();
+                ParsedCommand cmd = parser.parse(input);
+                String action = cmd.getAction();
+
                 if (action.equalsIgnoreCase("shop list")) {
                     view.showMessage(shopController.showShopList());
                 } else if (action.equalsIgnoreCase("shop daily")) {
                     view.showMessage(shopController.showDailyOffer());
                 } else if (action.equalsIgnoreCase("shop buy")) {
                     view.showMessage(shopController.buyItem(cmd));
-                } else if (action.equalsIgnoreCase("cheat add") || action.equalsIgnoreCase("menu cheat add")) {
-                    view.showMessage(controller.processPlay(cmd, "cheat add"));
                 } else {
-                    view.showMessage("Unknown command in Shop Mode. Available commands: 'shop list', 'shop daily', 'shop buy', 'back'.");
+                    view.showMessage("Unknown command in Shop Mode.");
                 }
             }
         }

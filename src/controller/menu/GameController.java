@@ -406,11 +406,21 @@ public class GameController extends Controller {
         return "Cheat activated: Added " + amount + " suns.";
     }
 
-    public void advanceTime(int ticks) {
-        if (game == null) return;
+    public int advanceTime(int ticks) {
+        if (game == null) return 0;
+        int actualTicksExecuted = 0;
+        int activeZombiesAtStart = game.getActiveZombies().size();
         for (int i = 0; i < ticks; i++) {
+            if (game.isLost() || game.isWon() || !game.isRunning()) {
+                break;
+            }
+            if (game.getSpawner() != null && game.getSpawner().ticksSinceLastSpawn == 0 && game.getActiveZombies().size() > activeZombiesAtStart) {
+                game.getSpawner().ticksSinceLastSpawn = 1;
+            }
             game.tick();
+            actualTicksExecuted++;
         }
+        return actualTicksExecuted;
     }
 
     public boolean isCooldownCheatActive() {

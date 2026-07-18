@@ -18,19 +18,17 @@ public class NewsMenu extends Menu {
             String input = view.getInput("news menu");
             ParsedCommand cmd = parser.parse(input);
 
-            controller.addNews("New plant unlocked: Sunflower!");
-
             if (input.equalsIgnoreCase("back")) {
                 manager.setCurrentMenu(new MainMenu(controller));
                 break;
             }
-            if(cmd.getAction().equalsIgnoreCase("menu news show-unread")){
-                view.showMessage(ctrl.processNews(cmd , "show unread"));
+            if (cmd.getAction().equalsIgnoreCase("menu news show-unread")) {
+                view.showMessage(ctrl.processNews(cmd, "show unread"));
+            } else if (cmd.getAction().equalsIgnoreCase("menu news show-all")) {
+                view.showMessage(ctrl.processNews(cmd, "show all"));
+            } else {
+                view.showMessage("Unknown command inside News Menu. Available: 'menu news show-unread', 'menu news show-all', 'back'");
             }
-            if(cmd.getAction().equalsIgnoreCase("menu news show-all")){
-                view.showMessage(ctrl.processNews(cmd , "show all"));
-            }
-
         }
     }
 }

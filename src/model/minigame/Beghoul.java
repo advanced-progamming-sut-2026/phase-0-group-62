@@ -4,6 +4,7 @@ import model.Game;
 import model.Tile;
 import model.entities.plant.Plant;
 import model.entities.plant.factory.PlantFactory;
+import model.entities.zombie.Zombie;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -53,6 +54,32 @@ public class Beghoul extends MiniGame {
 
     public boolean isVictoryConditionMet() {
         return matchesFormed >= targetMatches;
+    }
+
+    public void updateMiniGame(Game game) {
+        if (isVictoryConditionMet()) {
+            game.setWon(true);
+            game.stop();
+            for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+                game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
+            }
+            game.getActiveZombies().clear();
+            return;
+        }
+        if (!hasAnyPossibleMoves(game)) {
+            fillGridRandomly(game);
+            while (checkAndProcessMatches(game, false)) {}
+        }
+        if (game.getTickCount() % 80 == 0) {
+            Zombie z = model.entities.zombie.factory.ZombieFactory.createZombie("NormalZombie");
+            if (z != null) {
+                int r = new Random().nextInt(5);
+                z.setX(8.0);
+                z.setY(r);
+                game.addZombie(z);
+                game.getBoard().getTile(r, 8).setZombie(z);
+            }
+        }
     }
 
     public void fillGridRandomly(Game game) {
@@ -147,7 +174,6 @@ public class Beghoul extends MiniGame {
         }
 
         game.addSun(baseSunReward);
-        System.out.println("Beghoul Match formed! Suns rewarded: " + baseSunReward);
 
         applyGravityAndRefill(game);
         return true;

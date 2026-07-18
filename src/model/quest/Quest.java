@@ -16,7 +16,9 @@ public class Quest {
     private int rewardCoins;
     private int rewardDiamonds;
     private String rewardUnlockable;
-    private Map<String, Integer> requirements;
+    private Priority priority;
+    private String additionalCondition;
+    private int variableN;
 
     public enum QuestType {
         STORY,
@@ -39,51 +41,26 @@ public class Quest {
         LOW
     }
 
-    public Quest(String title, String description) {
-        this.id = title.toLowerCase().replace(" ", "_");
+    public Quest(String title, String description, QuestType type, Priority priority) {
+        this.id = title.toLowerCase().replace(" ", "_").replace("'", "");
         this.title = title;
         this.description = description;
         this.completed = false;
-        this.type = QuestType.DAILY;
+        this.type = type;
         this.status = QuestStatus.AVAILABLE;
         this.progress = 0;
         this.target = 1;
         this.rewardCoins = 0;
         this.rewardDiamonds = 0;
-        this.requirements = new HashMap<>();
-    }
-
-    public Quest(String title, String description, QuestType type) {
-        this(title, description);
-        this.type = type;
-        if (type == QuestType.STORY) {
-            this.status = QuestStatus.AVAILABLE;
-        } else if (type == QuestType.EPIC) {
-            this.status = QuestStatus.LOCKED;
-        }
-    }
-
-    public Priority getPriority() {
-        if (type == QuestType.STORY) return Priority.CRITICAL;
-        if (type == QuestType.EPIC) return Priority.HIGH;
-        return Priority.MEDIUM;
+        this.priority = priority;
+        this.additionalCondition = "";
+        this.variableN = 0;
     }
 
     public void applyReward(User user) {
         if (status == QuestStatus.COMPLETED) {
             user.setCoins(user.getCoins() + rewardCoins);
             user.setGems(user.getGems() + rewardDiamonds);
-            if (rewardUnlockable != null && !rewardUnlockable.isEmpty()) {
-                if (rewardUnlockable.toLowerCase().contains("seed_")) {
-                    String plantName = rewardUnlockable.substring(5);
-                    int pCount = user.getSeedPackets().getOrDefault(plantName, 0);
-                    user.getSeedPackets().put(plantName, pCount + 5);
-                } else {
-                    if (!user.getUnlockedPlants().contains(rewardUnlockable)) {
-                        user.getUnlockedPlants().add(rewardUnlockable);
-                    }
-                }
-            }
             status = QuestStatus.CLAIMED;
         }
     }
@@ -93,36 +70,14 @@ public class Quest {
         status = QuestStatus.COMPLETED;
     }
 
-    public void claimReward() {
-        if (status == QuestStatus.COMPLETED) {
-            status = QuestStatus.CLAIMED;
-        }
-    }
-
     public void updateProgress(int amount) {
-        if (status != QuestStatus.IN_PROGRESS && status != QuestStatus.AVAILABLE) {
+        if (status == QuestStatus.AVAILABLE) {
             status = QuestStatus.IN_PROGRESS;
         }
         progress = Math.min(progress + amount, target);
         if (progress >= target) {
             complete();
         }
-    }
-
-    public void reset() {
-        if (type == QuestType.DAILY) {
-            progress = 0;
-            status = QuestStatus.AVAILABLE;
-            completed = false;
-        }
-    }
-
-    public boolean isAvailable() {
-        return status == QuestStatus.AVAILABLE || status == QuestStatus.IN_PROGRESS;
-    }
-
-    public double getProgressPercentage() {
-        return target > 0 ? (double) progress / target * 100 : 0;
     }
 
     public String getId() { return id; }
@@ -139,18 +94,10 @@ public class Quest {
     public void setRewardCoins(int rewardCoins) { this.rewardCoins = rewardCoins; }
     public int getRewardDiamonds() { return rewardDiamonds; }
     public void setRewardDiamonds(int rewardDiamonds) { this.rewardDiamonds = rewardDiamonds; }
-    public String getRewardUnlockable() { return rewardUnlockable; }
-    public void setRewardUnlockable(String rewardUnlockable) { this.rewardUnlockable = rewardUnlockable; }
-    public Map<String, Integer> getRequirements() { return new HashMap<>(requirements); }
-    public void addRequirement(String key, int value) { requirements.put(key, value); }
-    public void setStatusLocket() {
-        if (type == QuestType.EPIC) {
-            status = QuestStatus.LOCKED;
-        }
-    }
-    public void unlock() {
-        if (status == QuestStatus.LOCKED) {
-            status = QuestStatus.AVAILABLE;
-        }
-    }
+    public Priority getPriority() { return priority; }
+    public void setPriority(Priority priority) { this.priority = priority; }
+    public String getAdditionalCondition() { return additionalCondition; }
+    public void setAdditionalCondition(String cond) { this.additionalCondition = cond; }
+    public int getVariableN() { return variableN; }
+    public void setVariableN(int n) { this.variableN = n; }
 }

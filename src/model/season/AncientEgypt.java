@@ -6,7 +6,7 @@ import java.util.Random;
 
 public class AncientEgypt extends Season {
     public AncientEgypt() {
-        super("AncientEgypt", 10);
+        super("AncientEgypt", 4);
     }
 
     @Override
@@ -20,8 +20,8 @@ public class AncientEgypt extends Season {
     @Override
     public int modifySpawnColumn(int currentWave, int totalWaves, int defaultColumn, int zombiesSpawned, Board board, int lane) {
         if (currentWave == totalWaves) {
-            int forward = new Random().nextInt(4) + 1;
-            return Math.max(0, defaultColumn - forward);
+            int forwardOffset = new Random().nextInt(4) + 1;
+            return Math.max(0, defaultColumn - forwardOffset);
         }
         return defaultColumn;
     }

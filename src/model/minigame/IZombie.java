@@ -1,5 +1,9 @@
 package model.minigame;
 
+import model.Game;
+import model.entities.zombie.Zombie;
+import java.util.ArrayList;
+
 public class IZombie extends MiniGame {
     private int zombieSunCount;
     private int brainsEaten;
@@ -46,5 +50,23 @@ public class IZombie extends MiniGame {
 
     public boolean isVictoryConditionMet() {
         return brainsEaten >= 5;
+    }
+
+    public void updateMiniGame(Game game) {
+        for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+            if (z.getName().equalsIgnoreCase("SunProducerZombie")) {
+                z.incrementIzombieSunTicks();
+                int baseProductionInterval = Math.max(100 - (z.getIzombieSunProductionTicks() / 10), 20);
+                if (game.getTickCount() % baseProductionInterval == 0) {
+                    addSun(25);
+                    System.out.println("IZombie: SunProducerZombie in lane " + z.getY() + " generated 25 suns. Rate increased!");
+                }
+            }
+        }
+        if (zombieSunCount < 50 && game.getActiveZombies().isEmpty()) {
+            game.setLost(true);
+            game.stop();
+            System.out.println("IZombie: Out of suns and no active zombies left! Game Over!");
+        }
     }
 }

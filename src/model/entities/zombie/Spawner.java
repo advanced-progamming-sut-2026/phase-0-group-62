@@ -29,7 +29,7 @@ public class Spawner {
         this.currentWave = 0;
         this.remainingZombies = 0;
         this.zombiesSpawnedInWave = 0;
-        this.ticksSinceLastSpawn = 0;
+        this.ticksSinceLastSpawn = getSpawnInterval();
         this.finalWaveStarted = false;
         this.waveSchedule = new HashMap<>();
         this.spawnInterval = getSpawnInterval();
@@ -49,27 +49,19 @@ public class Spawner {
         int waveMultiplier = (int) Math.pow(1.25, wave - 1);
         int cost = (int) (baseCost * waveMultiplier);
         switch (difficulty) {
-            case EASY:
-                cost = (int) (cost * 0.7);
-                break;
-            case HARD:
-                cost = (int) (cost * 1.4);
-                break;
-            default:
-                break;
+            case EASY: cost = (int) (cost * 0.7); break;
+            case HARD: cost = (int) (cost * 1.4); break;
+            default: break;
         }
-
         if (wave == totalWaves) {
             cost *= 2;
         }
-
         return Math.max(cost, 10);
     }
 
     private List<String> generateZombieTypes(int waveCost, int wave) {
         List<String> types = new ArrayList<>();
         int remainingCost = waveCost;
-
         List<String> availableZombies = getAvailableZombiesForWave(wave);
         while (remainingCost > 0) {
             String type = availableZombies.get(new Random().nextInt(availableZombies.size()));
@@ -86,35 +78,23 @@ public class Spawner {
                 }
             }
         }
-
         return types;
     }
 
     private List<String> getAvailableZombiesForWave(int wave) {
         List<String> available = new ArrayList<>();
         available.add("NormalZombie");
-
-        if (wave >= 2) {
-            available.add("ConeZombie");
-        }
-        if (wave >= 3) {
-            available.add("BucketZombie");
-        }
-        if (wave >= 4) {
-            available.add("FastZombie");
-        }
-
+        if (wave >= 2) available.add("ConeZombie");
+        if (wave >= 3) available.add("BucketZombie");
+        if (wave >= 4) available.add("FastZombie");
         return available;
     }
 
-    private int getSpawnInterval() {
+    public int getSpawnInterval() {
         switch (difficulty) {
-            case EASY:
-                return 120;
-            case HARD:
-                return 40;
-            default:
-                return 80;
+            case EASY: return 120;
+            case HARD: return 40;
+            default: return 80;
         }
     }
 
@@ -126,7 +106,7 @@ public class Spawner {
         remainingZombies = zombieTypes.size();
         zombiesSpawnedInWave = 0;
         finalWaveStarted = (waveNumber == totalWaves);
-        ticksSinceLastSpawn = 0;
+        ticksSinceLastSpawn = spawnInterval;
     }
 
     public Zombie spawnNextZombie() {
@@ -144,6 +124,18 @@ public class Spawner {
         int column = board.getColumns() - 1;
         if (currentSeason != null) {
             column = currentSeason.modifySpawnColumn(currentWave, totalWaves, column, zombiesSpawnedInWave, board, lane);
+        }
+
+        int minAllowedColumn = 4;
+        if (currentSeason != null && "DarkAges".equalsIgnoreCase(currentSeason.getName())) {
+            minAllowedColumn = 1;
+        }
+
+        if (column < minAllowedColumn) {
+            column = minAllowedColumn;
+        }
+        if (column >= board.getColumns()) {
+            column = board.getColumns() - 1;
         }
 
         Zombie zombie = ZombieFactory.createZombieAtColumn(type, lane, column);
@@ -164,47 +156,28 @@ public class Spawner {
         return zombie;
     }
 
-    public void update() {
+    public Zombie update() {
         ticksSinceLastSpawn++;
         if (ticksSinceLastSpawn >= spawnInterval && remainingZombies > 0) {
-            spawnNextZombie();
             ticksSinceLastSpawn = 0;
+            return spawnNextZombie();
         }
+        return null;
     }
 
     public boolean isWaveComplete() {
-        return remainingZombies <= 0 && zombiesSpawnedInWave >=
-                waveSchedule.getOrDefault(currentWave, Collections.emptyList()).size();
+        return remainingZombies <= 0 && zombiesSpawnedInWave >= waveSchedule.getOrDefault(currentWave, Collections.emptyList()).size();
     }
 
-    public boolean isFinalWave() {
-        return currentWave == totalWaves;
-    }
-
-    public boolean isFinalWaveStarted() {
-        return finalWaveStarted;
-    }
-
+    public boolean isFinalWave() { return currentWave == totalWaves; }
+    public boolean isFinalWaveStarted() { return finalWaveStarted; }
     public int getCurrentWave() { return currentWave; }
     public int getTotalWaves() { return totalWaves; }
     public int getRemainingZombies() { return remainingZombies; }
     public int getZombiesSpawnedInWave() { return zombiesSpawnedInWave; }
-
-    public List<String> getCurrentWaveZombies() {
-        return waveSchedule.getOrDefault(currentWave, Collections.emptyList());
-    }
-
-    public int getZombiesInWave() {
-        return waveSchedule.getOrDefault(currentWave, Collections.emptyList()).size();
-    }
-
+    public List<String> getCurrentWaveZombies() { return waveSchedule.getOrDefault(currentWave, Collections.emptyList()); }
+    public int getZombiesInWave() { return waveSchedule.getOrDefault(currentWave, Collections.emptyList()).size(); }
     public void setSpawnInterval(int spawnInterval) { this.spawnInterval = spawnInterval; }
-
-    public Season getCurrentSeason() {
-        return currentSeason;
-    }
-
-    public void setCurrentSeason(Season currentSeason) {
-        this.currentSeason = currentSeason;
-    }
+    public Season getCurrentSeason() { return currentSeason; }
+    public void setCurrentSeason(Season currentSeason) { this.currentSeason = currentSeason; }
 }

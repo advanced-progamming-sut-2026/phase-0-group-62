@@ -40,11 +40,16 @@ public class GameView extends View {
                 Sun s = getSunAtTile(game, c, r);
 
                 String cellContent = ".";
+
+                if (tile != null && tile.getType() == TileType.WATER && p == null) {
+                    cellContent = "~~";
+                }
+
                 if (p != null) {
                     String freezeMark = p.isFrozen() ? "#" : "";
                     cellContent = freezeMark + p.getName().substring(0, 1).toUpperCase() + p.getHealth();
                 } else if (z != null) {
-                    cellContent = "Z" + z.getHealth();
+                    cellContent = z.getName().substring(0, 1).toUpperCase() + z.getHealth();
                 } else if (s != null) {
                     cellContent = "*";
                 } else if (tile != null && tile.getType() == TileType.GRAVE) {
@@ -66,7 +71,7 @@ public class GameView extends View {
 
     private Zombie getZombieAtTile(Game game, int x, int y) {
         for (Zombie z : game.getActiveZombies()) {
-            if ((int) z.getX() == x && z.getY() == y) {
+            if ((int) Math.round(z.getX()) == x && z.getY() == y) {
                 return z;
             }
         }

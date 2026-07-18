@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class FrostbiteCaves extends Season {
     public FrostbiteCaves() {
-        super("FrostbiteCaves", 10);
+        super("FrostbiteCaves", 4);
     }
 
     @Override
@@ -19,17 +19,9 @@ public class FrostbiteCaves extends Season {
         board.setupSlideway(3, 4, -1);
 
         Zombie fz1 = model.entities.zombie.factory.ZombieFactory.createZombieAtColumn("NormalZombie", 0, 4);
-        if (fz1 != null) {
-            fz1.setFrozenIceHealth(600);
-            board.getTile(0, 4).setZombie(fz1);
-            game.addZombie(fz1);
-        }
+        if (fz1 != null) { fz1.setFrozenIceHealth(600); board.getTile(0, 4).setZombie(fz1); game.addZombie(fz1); }
         Zombie fz2 = model.entities.zombie.factory.ZombieFactory.createZombieAtColumn("NormalZombie", 4, 5);
-        if (fz2 != null) {
-            fz2.setFrozenIceHealth(600);
-            board.getTile(4, 5).setZombie(fz2);
-            game.addZombie(fz2);
-        }
+        if (fz2 != null) { fz2.setFrozenIceHealth(600); board.getTile(4, 5).setZombie(fz2); game.addZombie(fz2); }
     }
 
     @Override
@@ -44,7 +36,7 @@ public class FrostbiteCaves extends Season {
                 boolean isFire = false;
                 if (p.getTags() != null) {
                     for (String tag : p.getTags()) {
-                        if (tag.equalsIgnoreCase("fire") || tag.equalsIgnoreCase("fire_peashooter") || p.getName().toLowerCase().contains("fire")) {
+                        if (tag.equalsIgnoreCase("fire") || p.getName().toLowerCase().contains("fire")) {
                             isFire = true;
                             break;
                         }
@@ -52,7 +44,6 @@ public class FrostbiteCaves extends Season {
                 }
                 if (!isFire) {
                     p.setFreezeLevel(p.getFreezeLevel() + 1);
-                    System.out.println("Plant " + p.getName() + " freeze level increased to " + p.getFreezeLevel());
                 }
             }
         }
@@ -67,12 +58,10 @@ public class FrostbiteCaves extends Season {
                     for (int dr = -1; dr <= 1; dr++) {
                         for (int dc = -1; dc <= 1; dc++) {
                             if (dr == 0 && dc == 0) continue;
-                            int nr = p.getY() + dr;
-                            int nc = p.getX() + dc;
-                            Plant adj = game.getPlantAt(nc, nr);
+                            Plant adj = game.getPlantAt(p.getX() + dc, p.getY() + dr);
                             if (adj != null && adj.getTags() != null) {
                                 for (String tag : adj.getTags()) {
-                                    if (tag.equalsIgnoreCase("fire") || tag.equalsIgnoreCase("fire_peashooter") || adj.getName().toLowerCase().contains("fire")) {
+                                    if (tag.equalsIgnoreCase("fire") || adj.getName().toLowerCase().contains("fire")) {
                                         fireAdjacent = true;
                                         break;
                                     }
@@ -82,9 +71,6 @@ public class FrostbiteCaves extends Season {
                     }
                     if (fireAdjacent) {
                         p.damageIce(60);
-                        if (!p.isFrozen()) {
-                            System.out.println("Plant " + p.getName() + " at (" + p.getX() + ", " + p.getY() + ") was thawed by adjacent fire plants!");
-                        }
                     }
                 }
             }

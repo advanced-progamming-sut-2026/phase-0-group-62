@@ -3,7 +3,6 @@ package model.score;
 import model.Game;
 import model.entities.zombie.Zombie;
 import model.entities.plant.Plant;
-
 import java.util.*;
 
 public class ScoreGame {
@@ -48,7 +47,7 @@ public class ScoreGame {
         this.activePatterns = new HashSet<>();
     }
 
-    public void onZombieKilled(Zombie zombie, String plantType) {
+    public void onZombieKilled(Zombie zombie, String plantType, Game game) {
         int basePoints = 10;
         int healthBonus = zombie.getMaxHealth() / 20;
         int typeBonus = zombie.isBoss() ? 100 : 0;
@@ -69,8 +68,8 @@ public class ScoreGame {
         checkPatterns();
     }
 
-    public void onZombieKilled(Zombie zombie) {
-        onZombieKilled(zombie, "unknown");
+    public void onZombieKilled(Zombie zombie, Game game) {
+        onZombieKilled(zombie, "unknown", game);
     }
 
     public void onPlantPlaced(Plant plant) {
@@ -95,6 +94,7 @@ public class ScoreGame {
 
     public void onDamageTaken(int amount) {
         totalDamageTaken += amount;
+        checkPatterns();
     }
 
     public void onComboBreak() {
@@ -113,19 +113,15 @@ public class ScoreGame {
         if (zombiesKilled >= 10 && totalScore > 200) {
             activePatterns.add(ScoringPattern.AGGRESSIVE);
         }
-
         if (totalDamageTaken < 100 && wavesSurvived >= 3) {
             activePatterns.add(ScoringPattern.DEFENSIVE);
         }
-
         if (plantsPlaced >= 5 && zombiesKilled >= 5) {
             activePatterns.add(ScoringPattern.EFFICIENT);
         }
-
         if (maxCombo >= 10) {
             activePatterns.add(ScoringPattern.COMBO_MASTER);
         }
-
         if (plantsPlaced > 0 && totalDamageTaken == 0) {
             activePatterns.add(ScoringPattern.PERFECTIONIST);
         }

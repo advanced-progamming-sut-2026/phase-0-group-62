@@ -1,6 +1,9 @@
 package model;
 
 import model.enums.TileType;
+import model.entities.zombie.Zombie;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Board {
     private final int rows;
@@ -103,5 +106,46 @@ public class Board {
         if (tile != null) {
             tile.setNecromancyTile(true);
         }
+    }
+
+    public void updateProjectilesAndCollisions(Game game) {
+        List<Bullet> bulletsToRemove = new ArrayList<>();
+        for (Bullet bullet : new ArrayList<>(game.getBullets())) {
+            bullet.move();
+            int row = bullet.getRow();
+            int col = bullet.getColumn();
+            Tile tile = getTile(row, col);
+            if (tile != null) {
+                if (bullet.getType() == Bullet.BulletType.FIRE && tile.getPlant() != null && tile.getPlant().isFrozen()) {
+                    tile.getPlant().melt();
+                }
+                if (tile.getType() == TileType.GRAVE && bullet.getType() != Bullet.BulletType.LOB) {
+                    tile.setGraveHealth(tile.getGraveHealth() - bullet.getDamage());
+                    bulletsToRemove.add(bullet);
+                    if (tile.getGraveHealth() <= 0) {
+                        removeGrave(row, col);
+                    }
+                    continue;
+                }
+            }
+
+            Zombie targetZombie = game.getFirstZombieInRowAhead(bullet.getRow(), bullet.getColumn());
+            if (targetZombie != null && targetZombie.getY() == bullet.getRow()) {
+                targetZombie.takeDamage(bullet.getDamage(), false);
+                bulletsToRemove.add(bullet);
+                if (!targetZombie.isAlive()) {
+                    game.getActiveZombies().remove(targetZombie);
+                    int zX = (int) Math.round(targetZombie.getX());
+                    if (zX >= 0 && zX < columns) {
+                        getTile(targetZombie.getY(), zX).setZombie(null);
+                    }
+                    game.getScoreGame().onZombieKilled(targetZombie, game);
+                    game.incrementZombiesKilled();
+                }
+            } else if (bullet.isOutOfBounds(columns)) {
+                bulletsToRemove.add(bullet);
+            }
+        }
+        game.getBullets().removeAll(bulletsToRemove);
     }
 }

@@ -45,7 +45,7 @@ public class NewsController {
             return result.toString().trim();
         }
 
-        return "error";
+        return "Unknown action.";
     }
 
     public void addNewsTrigger(String content) {

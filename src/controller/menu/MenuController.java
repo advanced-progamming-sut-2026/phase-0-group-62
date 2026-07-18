@@ -10,10 +10,13 @@ import model.entities.plant.Plant;
 import model.entities.plant.loader.PlantLoader;
 import model.entities.zombie.loader.ZombieLoader;
 import model.enums.Gender;
+import model.leaderboard.Leaderboard;
 import util.FileManager;
 import util.HashUtil;
 import util.ParsedCommand;
 import view.TerminalView;
+import view.menu.MainMenu;
+import view.menu.MenuManager;
 
 import java.util.List;
 
@@ -22,6 +25,7 @@ import static util.FileManager.isUsernameExists;
 
 public class MenuController {
     private final TerminalView view = new TerminalView();
+    private final CommandParser parser = new CommandParser();
     private String currentForgetPasswordUsername;
     private final NewsController newsController = new NewsController();
 
@@ -231,18 +235,18 @@ public class MenuController {
         return "invalid action";
     }
     public String processLogOut(ParsedCommand cmd) {
-        String username = model.UserSession.getCurrentUser().getUsername();
+        String username = UserSession.getCurrentUser().getUsername();
 
-        model.UserSession.clear();
+        UserSession.clear();
 
-        model.Settings settings = FileManager.loadSettings();
+        Settings settings = FileManager.loadSettings();
         settings.setAutoLoginUsername(null);
         FileManager.saveSettings(settings);
 
         return "User " + username + " logged out successfully!";
     }
-    public String processPlay(ParsedCommand cmd , String action){
-        if(cmd.getArg("-c") != null && cmd.getArg("-c").equalsIgnoreCase("test")){
+    public String processPlay(ParsedCommand cmd, String action) {
+        if (cmd.getArg("-c") != null && cmd.getArg("-c").equalsIgnoreCase("test")) {
             return "ok";
         }
         User currentUser = UserSession.getCurrentUser();
@@ -252,15 +256,26 @@ public class MenuController {
         if (action.equalsIgnoreCase("coin-wallet")) {
             return "Your current balance: " + currentUser.getCoins() + " coins.";
         }
-        if(action.equalsIgnoreCase("gem-wallet")){
-            return "Your current balance: " + currentUser.getGems() + " gems."; // اینجا هم سکه نوشته بودی که به gems اصلاح شد
+        if (action.equalsIgnoreCase("gem-wallet")) {
+            return "Your current balance: " + currentUser.getGems() + " gems.";
         }
         if (action.equalsIgnoreCase("cheat add")) {
-            String[] parts = cmd.getArg("VALUE").split(" ");
-            int amount = Integer.parseInt(parts[0]);
-            String currency = parts[1].toLowerCase();
+            int amount = 0;
+            String currency = "";
 
-            if (currency.equals("coin")) {
+            if (cmd.hasFlag("-n")) {
+                String[] parts = cmd.getArg("-n").split(" ");
+                amount = Integer.parseInt(parts[0]);
+                currency = parts.length > 1 ? parts[1] : "coin";
+            } else if (cmd.getArg("VALUE") != null) {
+                String[] parts = cmd.getArg("VALUE").split(" ");
+                amount = Integer.parseInt(parts[0]);
+                currency = parts.length > 1 ? parts[1] : "coin";
+            } else {
+                return "Error: Invalid cheat format. Use: cheat add -n <amount> <currency>";
+            }
+
+            if (currency.toLowerCase().contains("coin")) {
                 currentUser.setCoins(currentUser.getCoins() + amount);
             } else {
                 currentUser.setGems(currentUser.getGems() + amount);
@@ -293,7 +308,7 @@ public class MenuController {
             return "Error: No user is logged in.";
         }
         Validator validator = new Validator();
-        Validator.ValidationResult res;
+        Validator.ValidationResult res = null;
         if (action.equalsIgnoreCase("change-username")) {
             String newUsername = cmd.getArg("-u");
             res = validator.validateUsername(newUsername);
@@ -482,8 +497,122 @@ public class MenuController {
         }
         return "error";
     }
+    public void handleLeaderboardMenuInput(String input) {
+        if (input.equalsIgnoreCase("back")) {
+            MenuManager.getInstance().setCurrentMenu(new MainMenu(this));
+            return;
+        }
 
+        ParsedCommand cmd = parser.parse(input);
+        String action = cmd.getAction();
+
+        if (action.equalsIgnoreCase("menu leaderboard") || action.equalsIgnoreCase("show")) {
+            List<User> allUsers = FileManager.loadUsers();
+            Leaderboard leaderboard = new Leaderboard();
+            for (User u : allUsers) {
+                leaderboard.addUser(u);
+            }
+
+            String sortBy = cmd.getArg("-s");
+            String order = cmd.getArg("-o");
+
+            Leaderboard.SortType sortType = Leaderboard.SortType.BY_TOTAL_SCORE;
+            boolean isAscending = false;
+
+            if (sortBy != null) {
+                switch (sortBy.toLowerCase()) {
+                    case "level":
+                        sortType = Leaderboard.SortType.BY_LEVEL;
+                        break;
+                    case "minigame":
+                        sortType = Leaderboard.SortType.BY_MINI_GAMES;
+                        break;
+                    case "dailyquest":
+                        sortType = Leaderboard.SortType.BY_DAILY_QUESTS;
+                        break;
+                    case "nondailyquest":
+                        sortType = Leaderboard.SortType.BY_NON_DAILY_QUESTS;
+                        break;
+                    case "scoring":
+                        sortType = Leaderboard.SortType.BY_SCORING_GAME;
+                        break;
+                    case "score":
+                    default:
+                        sortType = Leaderboard.SortType.BY_TOTAL_SCORE;
+                        break;
+                }
+            }
+
+            if (order != null && (order.equalsIgnoreCase("asc") || order.equalsIgnoreCase("ascending"))) {
+                isAscending = true;
+            }
+
+            leaderboard.setSortType(sortType, isAscending);
+            List<User> sortedList = leaderboard.getSortedUsers();
+
+            view.showMessage("\n======================================== GLOBAL LEADERBOARD ========================================");
+            String header = String.format("%-4s | %-12s | %-11s | %-10s | %-9s | %-12s | %-16s | %-12s",
+                    "Rank", "Username", "Total Score", "Last Level", "Minigames", "Daily Quests", "Non-Daily Quests", "Scoring High");
+            view.showMessage(header);
+            view.showMessage("----------------------------------------------------------------------------------------------------");
+
+            int rank = 1;
+            for (User u : sortedList) {
+                String levelStr = "S" + u.getLastSeasonCompleted() + "-L" + u.getLastLevelCompleted();
+                String row = String.format("%-4d | %-12s | %-11d | %-10s | %-9d | %-12d | %-16d | %-12d",
+                        rank,
+                        u.getUsername(),
+                        u.getScore(),
+                        levelStr,
+                        u.getCompletedMiniGames(),
+                        u.getCompletedDailyQuests(),
+                        u.getCompletedNonDailyQuests(),
+                        u.getHighestScoreInScoringGame());
+                view.showMessage(row);
+                rank++;
+            }
+            view.showMessage("====================================================================================================\n");
+        } else {
+            view.showMessage("Unknown command in Leaderboard Menu. Usage: menu leaderboard [-s score/level/minigame/dailyquest/nondailyquest/scoring] [-o asc/desc]");
+        }
+    }
+
+    public void handleCollectionMenuInput(String input) {
+        if (input.equalsIgnoreCase("back")) {
+            MenuManager.getInstance().setCurrentMenu(new MainMenu(this));
+            return;
+        }
+
+        ParsedCommand cmd = parser.parse(input);
+        String action = cmd.getAction();
+
+        if (cmd.getAction().equalsIgnoreCase("menu collection show-plants")) {
+            view.showMessage(processCollection(cmd, "show-plants"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection show-all-plants")) {
+            view.showMessage(processCollection(cmd, "show-all-plants"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection show-zombies")) {
+            view.showMessage(processCollection(cmd, "show-zombies"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection show-all-zombies")) {
+            view.showMessage(processCollection(cmd, "show-all-zombies"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection show-plant")) {
+            view.showMessage(processCollection(cmd, "show-plant"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection show-zombie")) {
+            view.showMessage(processCollection(cmd, "show-zombie"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection upgrade-plant")) {
+            view.showMessage(processCollection(cmd, "upgrade-plant"));
+        }
+        else if (cmd.getAction().equalsIgnoreCase("menu collection purchase-plant")) {
+            view.showMessage(processCollection(cmd, "purchase-plant"));
+        }
+        else {
+            view.showMessage("Invalid command inside Collection Menu.");
+        }
+    }
 
 }
-
-

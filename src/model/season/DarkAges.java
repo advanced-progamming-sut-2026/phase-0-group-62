@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class DarkAges extends Season {
     public DarkAges() {
-        super("DarkAges", 10);
+        super("DarkAges", 4);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class DarkAges extends Season {
         }
 
         Random rand = new Random();
-        int graveCount = rand.nextInt(3) + 1;
+        int graveCount = rand.nextInt(2) + 1;
         for (int i = 0; i < graveCount; i++) {
             int r = rand.nextInt(board.getRows());
             int c = rand.nextInt(board.getColumns());
@@ -50,10 +50,6 @@ public class DarkAges extends Season {
                 int sunReward = (rand.nextInt(100) < 30) ? 50 : 0;
                 boolean pfReward = (sunReward == 0 && rand.nextInt(100) < 15);
                 board.setupGrave(r, c, 700, sunReward, pfReward);
-                String rewardMsg = "";
-                if (sunReward > 0) rewardMsg = " [Reward: 50 Suns]";
-                else if (pfReward) rewardMsg = " [Reward: Plant Food]";
-                System.out.println("A new grave formed at (" + c + ", " + r + ")!" + rewardMsg);
             }
         }
     }

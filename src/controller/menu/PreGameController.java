@@ -10,9 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PreGameController {
+    public static String activeChapterName = null;
     private final List<String> selectedPlants = new ArrayList<>();
     private final List<String> boostedPlants = new ArrayList<>();
-    private final int maxSlots = 8; // تعداد جایگاه‌های پیش‌فرض
+    private final int maxSlots = 8;
 
     public String processCommand(ParsedCommand cmd, String action) {
         User currentUser = UserSession.getCurrentUser();
@@ -20,7 +21,28 @@ public class PreGameController {
             return "Error: No user is logged in.";
         }
 
-        // ۱. نمایش همه گیاهان بازی
+        if (action.equalsIgnoreCase("menu enter chapter")) {
+            String chapter = cmd.getArg("-c");
+            if (chapter == null) {
+                return "Error: Please specify a chapter using -c <chaptername>";
+            }
+            if (chapter.equalsIgnoreCase("AncientEgypt") || chapter.equalsIgnoreCase("Ancient Egypt") || chapter.equalsIgnoreCase("Egypt")) {
+                activeChapterName = "AncientEgypt";
+                return "Successfully entered chapter: AncientEgypt";
+            } else if (chapter.equalsIgnoreCase("FrostbiteCaves") || chapter.equalsIgnoreCase("Frostbite Caves")) {
+                activeChapterName = "FrostbiteCaves";
+                return "Successfully entered chapter: FrostbiteCaves";
+            } else if (chapter.equalsIgnoreCase("BigWaveBeach") || chapter.equalsIgnoreCase("Big Wave Beach")) {
+                activeChapterName = "BigWaveBeach";
+                return "Successfully entered chapter: BigWaveBeach";
+            } else if (chapter.equalsIgnoreCase("DarkAges") || chapter.equalsIgnoreCase("Dark Ages")) {
+                activeChapterName = "DarkAges";
+                return "Successfully entered chapter: DarkAges";
+            } else {
+                return "Error: Unknown chapter name.";
+            }
+        }
+
         if (action.equalsIgnoreCase("show all plants")) {
             List<Plant> allPlants = PlantLoader.loadPlants();
             StringBuilder sb = new StringBuilder("All game plants:\n");
@@ -30,7 +52,6 @@ public class PreGameController {
             return sb.toString().trim();
         }
 
-        // ۲. نمایش گیاهان آنلاک شده کاربر (موجود)
         if (action.equalsIgnoreCase("show available plants")) {
             List<String> unlocked = currentUser.getUnlockedPlants();
             if (unlocked.isEmpty()) {
@@ -48,30 +69,25 @@ public class PreGameController {
             return sb.toString().trim();
         }
 
-        // ۳. اضافه کردن گیاه به لیست انتخاب‌ها
         if (action.equalsIgnoreCase("add plant")) {
             String plantName = cmd.getArg("-t");
             if (plantName == null) return "Invalid format. Use: add plant -t <type>";
 
-            // الف) بررسی وجود گیاه در کل بازی
             boolean existsInGame = PlantLoader.loadPlants().stream()
                     .anyMatch(p -> p.getName().equalsIgnoreCase(plantName));
             if (!existsInGame) {
                 return "Error: Plant type does not exist in the game.";
             }
 
-            // ب) بررسی قفل نبودن گیاه برای کاربر (Case-insensitive)
             String exactPlantName = findExactPlantName(currentUser.getUnlockedPlants(), plantName);
             if (exactPlantName == null) {
                 return "Error: This plant is locked! Purchase it from the collection menu.";
             }
 
-            // ج) بررسی انتخاب نشدن از قبل
             if (selectedPlants.contains(exactPlantName)) {
                 return "Error: " + exactPlantName + " is already selected.";
             }
 
-            // د) بررسی پر نبودن ظرفیت اسلات‌ها
             if (selectedPlants.size() >= maxSlots) {
                 return "Error: Your selection slots are full (Max " + maxSlots + ").";
             }
@@ -80,7 +96,6 @@ public class PreGameController {
             return "Plant " + exactPlantName + " added. (" + selectedPlants.size() + "/" + maxSlots + ")";
         }
 
-        // ۴. حذف گیاه از لیست انتخاب‌ها
         if (action.equalsIgnoreCase("remove plant")) {
             String plantName = cmd.getArg("-t");
             if (plantName == null) return "Invalid format. Use: remove plant -t <type>";
@@ -91,11 +106,10 @@ public class PreGameController {
             }
 
             selectedPlants.remove(exactPlantName);
-            boostedPlants.remove(exactPlantName); // در صورت حذف گیاه، بوست آن هم برداشته می‌شود
+            boostedPlants.remove(exactPlantName);
             return "Plant " + exactPlantName + " removed. (" + selectedPlants.size() + "/" + maxSlots + ")";
         }
 
-        // ۵. بوست کردن گیاه با خرج ۲ الماس
         if (action.equalsIgnoreCase("boost plant")) {
             String plantName = cmd.getArg("-t");
             if (plantName == null) return "Invalid format. Use: boost plant -t <type>";
@@ -109,12 +123,10 @@ public class PreGameController {
                 return "Error: This plant is already boosted for this game.";
             }
 
-            // بررسی هزینه (۲ الماس)
             if (currentUser.getGems() < 2) {
                 return "Error: Insufficient gems! Boost costs 2 gems. You have: " + currentUser.getGems();
             }
 
-            // کسر الماس و ذخیره در دیتابیس
             currentUser.setGems(currentUser.getGems() - 2);
             FileManager.updateUser(currentUser);
             UserSession.setCurrentUser(currentUser);
@@ -123,19 +135,19 @@ public class PreGameController {
             return "Plant " + exactPlantName + " boosted successfully! 2 gems deducted.";
         }
 
-        // ۶. شروع بازی
         if (action.equalsIgnoreCase("start game")) {
+            if (activeChapterName == null) {
+                return "Error: You must select a chapter first using 'menu enter chapter -c <chaptername>' before starting the game.";
+            }
             if (selectedPlants.isEmpty()) {
                 return "Error: You must select at least one plant to start the game.";
             }
-            // اینجا بازی را با لیست selectedPlants و boostedPlants استارت می‌زنیم
             return "START_GAME_CONFIRMED";
         }
 
         return "invalid command";
     }
 
-    // یک متد کمکی برای مقایسه بدون حساسیت به حروف بزرگ و کوچک (Case-Insensitive search)
     private String findExactPlantName(List<String> list, String searchName) {
         for (String s : list) {
             if (s.equalsIgnoreCase(searchName)) {
@@ -145,7 +157,6 @@ public class PreGameController {
         return null;
     }
 
-    // گترها برای فرستادن اطلاعات نهایی به کلاس بازی
     public List<String> getSelectedPlants() { return selectedPlants; }
     public List<String> getBoostedPlants() { return boostedPlants; }
 }
