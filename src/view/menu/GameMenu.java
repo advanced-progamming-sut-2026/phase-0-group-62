@@ -29,6 +29,11 @@ public class GameMenu extends Menu {
         }
 
         String input = view.getInput("game play");
+
+        if (input.isEmpty()) {
+            input = "advance time -t 15";
+        }
+
         String result = gameMenuController.handleGameMenuInput(input);
 
         if (!result.equals("EXIT_GAME") && !result.equals("SHOW_MAP_TRIGGER")) {

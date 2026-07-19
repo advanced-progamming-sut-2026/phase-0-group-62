@@ -492,6 +492,7 @@ public class MenuController {
             currentUser.setCoins(currentUser.getCoins() - 2000);
             currentUser.getUnlockedPlants().add(target);
             currentUser.getPlantLevels().put(target, 1);
+            addNews("New plant unlocked: " + target + "! Check your collection.");
             FileManager.updateUser(currentUser);
             return "Plant " + target + " purchased successfully for 2000 coins!";
         }

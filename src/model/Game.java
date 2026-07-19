@@ -313,10 +313,10 @@ public class Game {
             plant.update();
             if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SUN_PRODUCER")) {
                 int plantInterval = (int) (plant.getActionInterval() * 10);
-                if (plantInterval > 0 && tickCount % plantInterval == 0) {
+                if (plantInterval > 0 && plant.shouldShoot()) {
                     if (!plant.isHasSunToCollect()) {
                         plant.setHasSunToCollect(true);
-                        gameLogMessages.add("plant " + plant.getName() + " produced a sun at (" + plant.getX() + ", " + plant.getY() + ")");
+                        gameLogMessages.add("plant " + plant.getName().toLowerCase() + " produced a sun at (" + plant.getX() + ", " + plant.getY() + ")");
                     }
                 }
             }
@@ -327,11 +327,27 @@ public class Game {
             zombie.updateEffects();
             zombie.updateCooldown();
 
+            if (!zombie.isAlive()) {
+                zombiesToRemove.add(zombie);
+                String deathMessage = "Zombie of type " + zombie.getName() + " is dead at (" + (int) Math.round(zombie.getX()) + ", " + zombie.getY() + ")";
+                gameLogMessages.add(deathMessage);
+                scoreGame.onZombieKilled(zombie, this);
+                zombiesKilledInLevel++;
+                continue;
+            }
+
             if (!zombie.hasEffect(ZombieEffect.FROZEN)) {
-                int currentX = (int) Math.round(zombie.getX());
-                int currentY = zombie.getY();
-                Plant targetPlant = getPlantAt(currentX, currentY);
-                if (targetPlant != null && !targetPlant.isBowlingBall()) {
+                double zombieX = zombie.getX();
+                int zombieY = zombie.getY();
+
+                int targetPlantX = (int) Math.floor(zombieX);
+                if (zombieX - targetPlantX == 0.0) {
+                    targetPlantX = targetPlantX - 1;
+                }
+
+                Plant targetPlant = getPlantAt(targetPlantX, zombieY);
+
+                if (targetPlant != null && !targetPlant.isBowlingBall() && zombieX - targetPlant.getX() <= 1.05) {
                     if (tickCount % 10 == 0) {
                         targetPlant.takeDamage(zombie.getDamage());
                         scoreGame.onDamageTaken(zombie.getDamage());
@@ -346,8 +362,9 @@ public class Game {
                         }
                     }
                 } else {
-                    if (currentX >= 0 && currentX < board.getColumns() && currentY >= 0 && currentY < board.getRows()) {
-                        Tile currentTile = board.getTile(currentY, currentX);
+                    int nextTileX = (int) Math.floor(zombieX);
+                    if (nextTileX >= 0 && nextTileX < board.getColumns() && zombieY >= 0 && zombieY < board.getRows()) {
+                        Tile currentTile = board.getTile(zombieY, nextTileX);
                         if (currentSeason != null && "FrostbiteCaves".equalsIgnoreCase(currentSeason.getName()) && currentTile != null && currentTile.isSlideway() && !zombie.isDodoRider()) {
                             int targetRow = zombie.getY() + currentTile.getSlideRowOffset();
                             if (targetRow >= 0 && targetRow < board.getRows()) {
@@ -451,7 +468,7 @@ public class Game {
         for (Plant plant : activePlants) {
             if (plant.isFrozen() || plant.isBowlingBall()) continue;
             if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SHOOTER")) {
-                if (tickCount % 15 == 0 && hasZombieInRow(plant.getY())) {
+                if (plant.shouldShoot() && hasZombieInRow(plant.getY())) {
                     bullets.add(new Bullet(20, plant.getY(), plant.getX() + 1));
                 }
             }

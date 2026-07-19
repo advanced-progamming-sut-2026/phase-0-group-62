@@ -95,6 +95,28 @@ public class PreGameController {
             selectedPlants.add(exactPlantName);
             return "Plant " + exactPlantName + " added. (" + selectedPlants.size() + "/" + maxSlots + ")";
         }
+        if (action.equalsIgnoreCase("menu enter minigame")) {
+            String mgName = cmd.getArg("-m");
+            if (mgName == null) {
+                return "Error: Please specify a minigame using -m <name>";
+            }
+
+            if (mgName.equalsIgnoreCase("Vasebreaker")) {
+                activeChapterName = "Vasebreaker_MG";
+                return "Successfully selected minigame: Vasebreaker. Ready to start!";
+            } else if (mgName.equalsIgnoreCase("WallnutBowling") || mgName.equalsIgnoreCase("Bowling")) {
+                activeChapterName = "WallnutBowling_MG";
+                return "Successfully selected minigame: Wallnut Bowling. Ready to start!";
+            } else if (mgName.equalsIgnoreCase("IZombie")) {
+                activeChapterName = "IZombie_MG";
+                return "Successfully selected minigame: IZombie. Ready to start!";
+            } else if (mgName.equalsIgnoreCase("Beghoul")) {
+                activeChapterName = "Beghoul_MG";
+                return "Successfully selected minigame: Beghoul. Ready to start!";
+            } else {
+                return "Error: Unknown minigame name.";
+            }
+        }
 
         if (action.equalsIgnoreCase("remove plant")) {
             String plantName = cmd.getArg("-t");
@@ -137,9 +159,9 @@ public class PreGameController {
 
         if (action.equalsIgnoreCase("start game")) {
             if (activeChapterName == null) {
-                return "Error: You must select a chapter first using 'menu enter chapter -c <chaptername>' before starting the game.";
+                return "Error: You must select a chapter or minigame first before starting.";
             }
-            if (selectedPlants.isEmpty()) {
+            if (!activeChapterName.endsWith("_MG") && selectedPlants.isEmpty()) {
                 return "Error: You must select at least one plant to start the game.";
             }
             return "START_GAME_CONFIRMED";

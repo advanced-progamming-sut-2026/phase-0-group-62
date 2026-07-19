@@ -29,6 +29,7 @@ public class Plant {
     private int dy;
     private int hitCount;
     private boolean isBowlingBall;
+    private int tickCounter;
 
     public Plant(int id, String name, String category, List<String> tags, int cost, int baseHp, int damage, double actionInterval, double recharge, String abilityType, double abilityValue, String plantFoodType, double plantFoodValue) {
         this.id = id;
@@ -54,6 +55,7 @@ public class Plant {
         this.dy = 0;
         this.hitCount = 0;
         this.isBowlingBall = false;
+        this.tickCounter = 0;
     }
 
     public void initHealth() {
@@ -80,6 +82,19 @@ public class Plant {
     }
 
     public void update() {
+        this.tickCounter++;
+    }
+
+    public boolean shouldShoot() {
+        int intervalTicks = (int) (actionInterval * 10);
+        if (intervalTicks <= 0) {
+            intervalTicks = 15;
+        }
+        if (this.tickCounter >= intervalTicks) {
+            this.tickCounter = 0;
+            return true;
+        }
+        return false;
     }
 
     public String getShootBehavior() {

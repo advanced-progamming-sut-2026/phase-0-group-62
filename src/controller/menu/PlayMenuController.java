@@ -81,6 +81,9 @@ public class PlayMenuController extends Controller {
             MenuManager.getInstance().setCurrentMenu(new LeaderboardMenu(menuController));
             return "ENTERING_LEADERBOARD";
         }
+        if (action.equalsIgnoreCase("menu enter minigame")) {
+            return preGameController.processCommand(cmd, "menu enter minigame");
+        }
 
         return "Unknown command inside Play Menu.";
     }

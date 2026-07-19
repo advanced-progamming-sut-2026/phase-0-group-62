@@ -33,13 +33,16 @@ public class ZombieLoader {
                         Map<String, Object> objdata = (Map<String, Object>) item.get("objdata");
                         int hp = 200;
                         int damage = 20;
-                        double speed = 2.0;
+                        double speed = 1.0;
                         if (objdata != null) {
                             if (objdata.containsKey("Hitpoints")) {
                                 hp = ((Number) objdata.get("Hitpoints")).intValue();
                             }
                             if (objdata.containsKey("EatDPS")) {
                                 damage = ((Number) objdata.get("EatDPS")).intValue() / 5;
+                            }
+                            if (objdata.containsKey("Speed")) {
+                                speed = ((Number) objdata.get("Speed")).doubleValue();
                             }
                         }
                         zombies.add(new Zombie(name, hp, speed, damage));

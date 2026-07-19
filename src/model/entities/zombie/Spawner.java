@@ -144,6 +144,15 @@ public class Spawner {
                 zombie.setGlowing(true);
             }
 
+            if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+                List<String> observed = model.UserSession.getCurrentUser().getObservedZombies();
+                if (!observed.contains(zombie.getName())) {
+                    observed.add(zombie.getName());
+                    model.UserSession.getCurrentUser().addNews("New zombie encountered: " + zombie.getName() + "!");
+                    util.FileManager.updateUser(model.UserSession.getCurrentUser());
+                }
+            }
+
             Tile tile = board.getTile(lane, column);
             if (tile != null) {
                 tile.setZombie(zombie);

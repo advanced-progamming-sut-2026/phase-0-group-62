@@ -148,14 +148,21 @@ public class Zombie {
         if (frozenDuration > 0 || frozenIceHealth > 0) {
             return 0.0;
         }
-        double currentSpeed = speed / 10.0;
+
+        double currentSpeed = speed;
+        if (currentSpeed <= 0) {
+            currentSpeed = 1.0;
+        }
+
+        double speedPerTick = currentSpeed / 10.0;
+
         if (chilledDuration > 0) {
-            currentSpeed /= 2.0;
+            speedPerTick /= 2.0;
         }
         if (isAngry) {
-            currentSpeed *= 2.0;
+            speedPerTick *= 2.0;
         }
-        return currentSpeed;
+        return speedPerTick;
     }
 
     public boolean isDodoRider() {

@@ -8,9 +8,9 @@ public class CommandParser {
 
     private final List<String> KNOWN_ACTIONS = Arrays.asList(
             // منوهای پایه
-            "menu enter chapter", "menu enter", "menu show current", "menu exit", "menu logout",
+            "menu enter chapter", "menu enter minigame", "menu enter", "menu show current", "menu exit", "menu logout",
             "register", "pick question", "login", "forget password", "answer","new password","menu settings","menu profile" , "menu news"
-            ,"menu play","menu play","menu enter chapter",
+            ,"menu play","menu play",
             // ورود به منوهای مختلف
             "menu collection", "menu greenhouse", "menu travel-log", "menu leaderboard",
             "menu coin-wallet", "menu gem-wallet", "menu settings change-difficulty",

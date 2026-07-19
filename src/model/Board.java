@@ -111,10 +111,13 @@ public class Board {
     public void updateProjectilesAndCollisions(Game game) {
         List<Bullet> bulletsToRemove = new ArrayList<>();
         for (Bullet bullet : new ArrayList<>(game.getBullets())) {
+            double oldBulletX = bullet.getColumn();
             bullet.move();
-            int row = bullet.getRow();
-            int col = bullet.getColumn();
-            Tile tile = getTile(row, col);
+            double newBulletX = bullet.getColumn();
+            int bRow = bullet.getRow();
+
+            int currentTileCol = (int) newBulletX;
+            Tile tile = getTile(bRow, currentTileCol);
             if (tile != null) {
                 if (bullet.getType() == Bullet.BulletType.FIRE && tile.getPlant() != null && tile.getPlant().isFrozen()) {
                     tile.getPlant().melt();
@@ -123,24 +126,63 @@ public class Board {
                     tile.setGraveHealth(tile.getGraveHealth() - bullet.getDamage());
                     bulletsToRemove.add(bullet);
                     if (tile.getGraveHealth() <= 0) {
-                        removeGrave(row, col);
+                        removeGrave(bRow, currentTileCol);
                     }
                     continue;
                 }
             }
 
-            Zombie targetZombie = game.getFirstZombieInRowAhead(bullet.getRow(), bullet.getColumn());
-            if (targetZombie != null && targetZombie.getY() == bullet.getRow()) {
-                targetZombie.takeDamage(bullet.getDamage(), false);
-                bulletsToRemove.add(bullet);
-                if (!targetZombie.isAlive()) {
-                    game.getActiveZombies().remove(targetZombie);
-                    int zX = (int) Math.round(targetZombie.getX());
-                    if (zX >= 0 && zX < columns) {
-                        getTile(targetZombie.getY(), zX).setZombie(null);
+            Zombie targetZombie = null;
+            for (Zombie z : game.getActiveZombies()) {
+                if (z.getY() == bRow) {
+                    double zombieX = z.getX();
+
+
+                    boolean hitDuringMove = (oldBulletX <= zombieX && newBulletX >= zombieX);
+
+
+                    boolean hitAtSpawn = (oldBulletX == z.getX() + 1 || (zombieX >= oldBulletX - 1.05 && zombieX <= oldBulletX));
+
+                    if (hitDuringMove || hitAtSpawn) {
+                        if (targetZombie == null || zombieX < targetZombie.getX()) {
+                            targetZombie = z;
+                        }
                     }
-                    game.getScoreGame().onZombieKilled(targetZombie, game);
-                    game.incrementZombiesKilled();
+                }
+            }
+
+            if (targetZombie != null) {
+                boolean graveInWay = false;
+                int startCheck = (int) oldBulletX;
+                int endCheck = (int) targetZombie.getX();
+                for (int c = startCheck; c <= endCheck; c++) {
+                    Tile checkTile = getTile(bRow, c);
+                    if (checkTile != null && checkTile.getType() == TileType.GRAVE && bullet.getType() != Bullet.BulletType.LOB) {
+                        graveInWay = true;
+                        break;
+                    }
+                }
+
+                if (!graveInWay) {
+                    targetZombie.takeDamage(bullet.getDamage(), false);
+                    bulletsToRemove.add(bullet);
+
+                    if (!targetZombie.isAlive()) {
+                        // ثبت لاگ مرگ دقیقاً در لیست اصلی گزارشات بازی قبل از حذف زامبی
+                        String deathMessage = "Zombie of type " + targetZombie.getName() + " is dead at (" + (int) Math.round(targetZombie.getX()) + ", " + targetZombie.getY() + ")";
+                        game.getGameLogMessages().add(deathMessage);
+
+                        game.getActiveZombies().remove(targetZombie);
+                        for (int r = 0; r < rows; r++) {
+                            for (int c = 0; c < columns; c++) {
+                                if (getTile(r, c).getZombie() == targetZombie) {
+                                    getTile(r, c).setZombie(null);
+                                }
+                            }
+                        }
+                        game.getScoreGame().onZombieKilled(targetZombie, game);
+                        game.incrementZombiesKilled();
+                    }
                 }
             } else if (bullet.isOutOfBounds(columns)) {
                 bulletsToRemove.add(bullet);

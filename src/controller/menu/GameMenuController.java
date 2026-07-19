@@ -27,19 +27,33 @@ public class GameMenuController extends Controller {
         this.menuController = menuController;
         this.game = new Game(5, 9, 1, Difficulty.NORMAL);
         String ch = PreGameController.activeChapterName;
-        Season season = null;
-        if ("AncientEgypt".equals(ch)) {
-            season = new AncientEgypt();
-        } else if ("FrostbiteCaves".equals(ch)) {
-            season = new FrostbiteCaves();
-        } else if ("BigWaveBeach".equals(ch)) {
-            season = new BigWaveBeach();
-        } else if ("DarkAges".equals(ch)) {
-            season = new DarkAges();
+
+        if (ch != null && ch.endsWith("_MG")) {
+            if (ch.startsWith("Vasebreaker")) {
+                this.game.setActiveMiniGame(new model.minigame.Vasebreaker());
+            } else if (ch.startsWith("WallnutBowling")) {
+                this.game.setActiveMiniGame(new model.minigame.WallnutBowling());
+            } else if (ch.startsWith("IZombie")) {
+                this.game.setActiveMiniGame(new model.minigame.IZombie());
+            } else if (ch.startsWith("Beghoul")) {
+                this.game.setActiveMiniGame(new model.minigame.Beghoul());
+            }
+        } else {
+            Season season = null;
+            if ("AncientEgypt".equals(ch)) {
+                season = new AncientEgypt();
+            } else if ("FrostbiteCaves".equals(ch)) {
+                season = new FrostbiteCaves();
+            } else if ("BigWaveBeach".equals(ch)) {
+                season = new BigWaveBeach();
+            } else if ("DarkAges".equals(ch)) {
+                season = new DarkAges();
+            }
+            if (season != null) {
+                this.game.setCurrentSeason(season);
+            }
         }
-        if (season != null) {
-            this.game.setCurrentSeason(season);
-        }
+
         this.game.start();
         this.gameController = new GameController(menuController);
         this.gameController.setGame(this.game);
@@ -88,6 +102,35 @@ public class GameMenuController extends Controller {
         }
         if (action.equalsIgnoreCase("show map")) {
             return "SHOW_MAP_TRIGGER";
+        }
+        if (action.equalsIgnoreCase("zombies info")) {
+            if (game.getActiveZombies().isEmpty()) {
+                return "No active zombies on the battlefield.";
+            }
+            StringBuilder sb = new StringBuilder();
+            for (Zombie z : game.getActiveZombies()) {
+                sb.append(z.getName()).append(":\n");
+                sb.append("    position: ").append((int) Math.round(z.getX())).append(", ").append(z.getY()).append("\n");
+                sb.append("    health: ").append(z.getHealth()).append("\n");
+                sb.append("    armor:\n");
+                if (z.getArmorHealth() > 0) {
+                    if ("CONE".equalsIgnoreCase(z.getArmorType())) {
+                        sb.append("        cone: ").append(z.getArmorHealth()).append("\n");
+                    } else if ("BUCKET".equalsIgnoreCase(z.getArmorType())) {
+                        sb.append("        bucket: ").append(z.getArmorHealth()).append("\n");
+                    } else {
+                        sb.append("        shield: ").append(z.getArmorHealth()).append("\n");
+                    }
+                }
+                sb.append("    effects:\n");
+                if (z.getChilledDuration() > 0) {
+                    sb.append("        chilled: ").append(String.format("%.1fs", z.getChilledDuration() / 10.0)).append("\n");
+                }
+                if (z.getFrozenDuration() > 0 || z.getFrozenIceHealth() > 0) {
+                    sb.append("        frozen: ").append(String.format("%.1fs", z.getFrozenDuration() / 10.0)).append("\n");
+                }
+            }
+            return sb.toString().trim();
         }
         if (action.equalsIgnoreCase("plant plant")) {
             String type = cmd.getArg("-t");
@@ -196,6 +239,35 @@ public class GameMenuController extends Controller {
         if (action.equalsIgnoreCase("cheat add-plant-food")) {
             return gameController.executeAddPlantFoodCheat();
         }
+        if (action.equalsIgnoreCase("cheat spawn-zombie")) {
+            String type = cmd.getArg("-t");
+            String loc = cmd.getArg("-l");
+            if (type == null || loc == null) {
+                return "Usage: cheat spawn-zombie -t <type> -l (<x>, <y>)";
+            }
+            try {
+                loc = loc.replace("(", "").replace(")", "");
+                String[] coords = loc.split(",");
+                int x = Integer.parseInt(coords[0].trim());
+                int y = Integer.parseInt(coords[1].trim());
+                String formattedType = type.equalsIgnoreCase("normalzombie") ? "NormalZombie" : type;
+                Zombie z = ZombieFactory.createZombieAtColumn(formattedType, y, x);
+                if (z != null) {
+                    if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+                        List<String> observed = model.UserSession.getCurrentUser().getObservedZombies();
+                        if (!observed.contains(z.getName())) {
+                            observed.add(z.getName());
+                            util.FileManager.updateUser(model.UserSession.getCurrentUser());
+                        }
+                    }
+                    game.addZombie(z);
+                    return "Zombie spawned via cheat.";
+                }
+                return "Invalid zombie type.";
+            } catch (Exception e) {
+                return "Invalid format! Use: cheat spawn-zombie -t <type> -l (<x>, <y>)";
+            }
+        }
         if (action.equalsIgnoreCase("cheat add")) {
             if (cmd.hasFlag("-n")) {
                 try {
@@ -231,6 +303,14 @@ public class GameMenuController extends Controller {
                 String formattedType = type.equalsIgnoreCase("normalzombie") ? "NormalZombie" : type;
                 Zombie z = ZombieFactory.createZombieAtColumn(formattedType, y, x);
                 if (z != null) {
+                    if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+                        List<String> observed = model.UserSession.getCurrentUser().getObservedZombies();
+                        if (!observed.contains(z.getName())) {
+                            observed.add(z.getName());
+                            model.UserSession.getCurrentUser().addNews("New zombie encountered via cheat: " + z.getName() + "!");
+                            util.FileManager.updateUser(model.UserSession.getCurrentUser());
+                        }
+                    }
                     game.addZombie(z);
                     return "Zombie spawned via cheat.";
                 }

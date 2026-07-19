@@ -78,48 +78,30 @@
         "isRead": true
       }
     ],
-    "coins": 2000,
+    "coins": 500,
     "gems": 0,
     "unlockedPlants": [
-      "PeaShooter"
+      "PeaShooter",
+      "sunflower"
+    ],
+    "observedZombies": [
+      "NormalZombie",
+      "ConeZombie"
     ],
     "plantLevels": {
-      "PeaShooter": 2
+      "PeaShooter": 2,
+      "sunflower": 1
     },
     "plantFoodInventory": 0,
     "greenhousePots": [
       {
         "row": 0,
         "column": 0,
-        "plant": {
-          "id": 999,
-          "name": "Marigold",
-          "category": "Marigold",
-          "cost": 0,
-          "baseHp": 100,
-          "damage": 0,
-          "actionInterval": 0.0,
-          "recharge": 0.0,
-          "abilityValue": 0.0,
-          "plantFoodValue": 0.0,
-          "health": 100,
-          "maxHealth": 100,
-          "isBoosted": false,
-          "hasSunToCollect": false,
-          "x": 0,
-          "y": 0,
-          "freezeLevel": 0,
-          "iceHealth": 0,
-          "dx": 0,
-          "dy": 0,
-          "hitCount": 0,
-          "isBowlingBall": false
-        },
         "locked": false,
-        "plantedTime": 1784394778550,
-        "growthTime": 7200000,
+        "plantedTime": 0,
+        "growthTime": 0,
         "readyToHarvest": false,
-        "isGrowing": true
+        "isGrowing": false
       },
       {
         "row": 0,

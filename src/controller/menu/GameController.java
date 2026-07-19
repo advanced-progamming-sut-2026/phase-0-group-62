@@ -82,6 +82,22 @@ public class GameController extends Controller {
             return "Error: There is already a plant here!";
         }
 
+        if (game.getActiveMiniGame() == null && !game.getLevel().getSpecialLevelType().name().contains("CONVEYOR")) {
+            boolean isSelected = false;
+            if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+                for (String p : model.UserSession.getCurrentUser().getUnlockedPlants()) {
+                    if (p.equalsIgnoreCase(type)) {
+                        isSelected = true;
+                        type = p;
+                        break;
+                    }
+                }
+            }
+            if (!isSelected) {
+                return "Error: You cannot plant a plant that you didn't select or haven't unlocked!";
+            }
+        }
+
         Plant newPlant = PlantFactory.createPlant(type);
         if (newPlant == null) return "Error: Plant type not found!";
         if (game.getSunCount() < newPlant.getCost()) {
