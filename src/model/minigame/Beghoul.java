@@ -13,77 +13,73 @@ public class Beghoul extends MiniGame {
     private int matchesFormed;
     private int targetMatches;
     private boolean[][] craters;
+    private int stageLevel;
+    private int maxStageLevel;
+    private boolean isSetup;
+
+    // Upgrade paths
+    private static final String[][] UPGRADE_PATHS = {
+        {"PeaShooter", "Repeater", "Threepeater"},
+        {"WallNut", "TallNut"},
+        {"Cabbagepult", "Melonpult", "WinterMelon"},
+        {"PuffShroom", "FumeShroom"},
+        {"SnowPea", "Repeater"} // Alternative path
+    };
+
+    private static final int[][] UPGRADE_COSTS = {
+        {500, 1500},
+        {500},
+        {1000, 750},
+        {250},
+        {400}
+    };
 
     public Beghoul() {
         super("Beghoul");
         this.matchesFormed = 0;
         this.targetMatches = 10;
         this.craters = new boolean[5][9];
+        this.stageLevel = 1;
+        this.maxStageLevel = 3;
+        this.isSetup = false;
     }
 
-    public int getMatchesFormed() {
-        return matchesFormed;
-    }
-
-    public void addMatch() {
-        this.matchesFormed++;
-    }
-
-    public int getTargetMatches() {
-        return targetMatches;
-    }
-
-    public void setTargetMatches(int targetMatches) {
-        this.targetMatches = targetMatches;
-    }
-
-    public boolean hasCrater(int r, int c) {
-        if (r >= 0 && r < 5 && c >= 0 && c < 9) return craters[r][c];
-        return false;
-    }
-
-    public void createCrater(int r, int c) {
-        if (r >= 0 && r < 5 && c >= 0 && c < 9) {
-            craters[r][c] = true;
-        }
-    }
-
-    public void resetGridCraters() {
+    public void setupStage(Game game, int level) {
+        this.stageLevel = level;
+        this.matchesFormed = 0;
+        this.targetMatches = 5 + level * 5; // Level 1: 10, Level 2: 15, Level 3: 20
         this.craters = new boolean[5][9];
+        this.isSetup = true;
+
+        // Clear existing plants and zombies
+        for (Plant p : new ArrayList<>(game.getActivePlants())) {
+            game.getBoard().getTile(p.getY(), p.getX()).setPlant(null);
+            game.removePlant(p);
+        }
+        for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+            game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
+            game.removeZombie(z);
+        }
+
+        // Different plant types per stage
+        String[][] stagePlants = {
+            {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Cabbagepult"},
+            {"PeaShooter", "Repeater", "TallNut", "SnowPea", "Melonpult", "PuffShroom"},
+            {"Repeater", "Threepeater", "TallNut", "WinterMelon", "FumeShroom", "BonkChoy"}
+        };
+
+        Random rand = new Random();
+        String[] types = stagePlants[Math.min(level - 1, stagePlants.length - 1)];
+        fillGridRandomly(game, types);
+        
+        // Start with some matches already checked
+        while (checkAndProcessMatches(game, false)) {}
+        
+        game.getGameLogMessages().add("Beghoul: Stage " + level + " started!");
+        game.getGameLogMessages().add("Target matches: " + targetMatches);
     }
 
-    public boolean isVictoryConditionMet() {
-        return matchesFormed >= targetMatches;
-    }
-
-    public void updateMiniGame(Game game) {
-        if (isVictoryConditionMet()) {
-            game.setWon(true);
-            game.stop();
-            for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
-                game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
-            }
-            game.getActiveZombies().clear();
-            return;
-        }
-        if (!hasAnyPossibleMoves(game)) {
-            fillGridRandomly(game);
-            while (checkAndProcessMatches(game, false)) {}
-        }
-        if (game.getTickCount() % 80 == 0) {
-            Zombie z = model.entities.zombie.factory.ZombieFactory.createZombie("NormalZombie");
-            if (z != null) {
-                int r = new Random().nextInt(5);
-                z.setX(8.0);
-                z.setY(r);
-                game.addZombie(z);
-                game.getBoard().getTile(r, 8).setZombie(z);
-            }
-        }
-    }
-
-    public void fillGridRandomly(Game game) {
-        String[] types = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
+    public void fillGridRandomly(Game game, String[] types) {
         Random rand = new Random();
         for (int r = 0; r < 5; r++) {
             for (int c = 0; c < 9; c++) {
@@ -106,16 +102,158 @@ public class Beghoul extends MiniGame {
         }
     }
 
+    public boolean upgradePlants(String fromType, String toType, Game game) {
+        int cost = getUpgradeCost(fromType, toType);
+        if (cost < 0) return false;
+        if (game.getSunCount() < cost) {
+            game.getGameLogMessages().add("Beghoul: Not enough suns! Required: " + cost);
+            return false;
+        }
+
+        game.spendSun(cost);
+        int upgradedCount = 0;
+
+        for (int r = 0; r < 5; r++) {
+            for (int c = 0; c < 9; c++) {
+                Tile tile = game.getBoard().getTile(r, c);
+                if (!hasCrater(r, c) && tile.getPlant() != null && tile.getPlant().getName().equalsIgnoreCase(fromType)) {
+                    game.removePlant(tile.getPlant());
+                    Plant up = PlantFactory.createPlant(toType);
+                    if (up == null) {
+                        up = new Plant(new Random().nextInt(1000) + 200, toType, "BEGHOULD", null, 0, 400, 40, 1.5, 0, null, 0, null, 0);
+                    }
+                    up.setX(c);
+                    up.setY(r);
+                    game.addPlant(up);
+                    tile.setPlant(up);
+                    upgradedCount++;
+                }
+            }
+        }
+
+        game.getGameLogMessages().add("Beghoul: Upgraded " + upgradedCount + " plants from " + fromType + " to " + toType + ".");
+        return upgradedCount > 0;
+    }
+
+    private int getUpgradeCost(String fromType, String toType) {
+        for (int i = 0; i < UPGRADE_PATHS.length; i++) {
+            String[] path = UPGRADE_PATHS[i];
+            for (int j = 0; j < path.length - 1; j++) {
+                if (path[j].equalsIgnoreCase(fromType) && path[j + 1].equalsIgnoreCase(toType)) {
+                    if (i < UPGRADE_COSTS.length && j < UPGRADE_COSTS[i].length) {
+                        return UPGRADE_COSTS[i][j];
+                    }
+                    // Fallback costs based on stage
+                    return stageLevel * 300 + 200;
+                }
+            }
+        }
+        return -1;
+    }
+
+    public int getMatchesFormed() { return matchesFormed; }
+    public void addMatch() { this.matchesFormed++; }
+    public int getTargetMatches() { return targetMatches; }
+    public void setTargetMatches(int targetMatches) { this.targetMatches = targetMatches; }
+    public int getStageLevel() { return stageLevel; }
+    public void setStageLevel(int level) { this.stageLevel = Math.min(level, maxStageLevel); }
+
+    public boolean hasCrater(int r, int c) {
+        if (r >= 0 && r < 5 && c >= 0 && c < 9) return craters[r][c];
+        return false;
+    }
+
+    public void createCrater(int r, int c) {
+        if (r >= 0 && r < 5 && c >= 0 && c < 9) {
+            craters[r][c] = true;
+        }
+    }
+
+    public void resetGridCraters() {
+        this.craters = new boolean[5][9];
+    }
+
+    public boolean isVictoryConditionMet() {
+        return matchesFormed >= targetMatches;
+    }
+
+    public void updateMiniGame(Game game) {
+        // Setup on first tick
+        if (!isSetup) {
+            setupStage(game, stageLevel);
+            return;
+        }
+
+        if (isVictoryConditionMet()) {
+            if (stageLevel < maxStageLevel) {
+                completeLevel(stageLevel, matchesFormed);
+                stageLevel++;
+                isSetup = false;
+                game.getGameLogMessages().add("Beghoul: Stage " + (stageLevel - 1) + " complete! Moving to Stage " + stageLevel);
+                setupStage(game, stageLevel);
+                // Remove all zombies
+                for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+                    game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
+                    game.removeZombie(z);
+                }
+                return;
+            } else {
+                game.setWon(true);
+                game.stop();
+                for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+                    game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
+                }
+                game.getActiveZombies().clear();
+                game.getGameLogMessages().add("Dear humanz, zis is not done yet; we will come back to eat your brainz, humanz.");
+                return;
+            }
+        }
+
+        // Check for no possible moves
+        if (!hasAnyPossibleMoves(game)) {
+            String[] types = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
+            fillGridRandomly(game, types);
+            game.getGameLogMessages().add("Beghoul: No possible moves! Grid reset.");
+            while (checkAndProcessMatches(game, false)) {}
+        }
+
+        // Spawn zombies periodically
+        if (game.getTickCount() % 80 == 0) {
+            Zombie z = model.entities.zombie.factory.ZombieFactory.createZombie("NormalZombie");
+            if (z != null) {
+                int r = new Random().nextInt(5);
+                z.setX(8.0);
+                z.setY(r);
+                // Make zombie stronger in higher stages
+                if (stageLevel >= 2) {
+                    z.setHealth(z.getMaxHealth() + 100);
+                }
+                if (stageLevel >= 3) {
+                    z.setDamage(z.getDamage() + 10);
+                }
+                game.addZombie(z);
+                game.getBoard().getTile(r, 8).setZombie(z);
+            }
+        }
+    }
+
+    public void fillGridRandomly(Game game) {
+        String[] types = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
+        fillGridRandomly(game, types);
+    }
+
     public boolean checkAndProcessMatches(Game game, boolean isCascade) {
         boolean[][] toRemove = new boolean[5][9];
         boolean foundMatch = false;
 
+        // Check horizontal matches
         for (int r = 0; r < 5; r++) {
             for (int c = 0; c < 7; c++) {
                 Tile t1 = game.getBoard().getTile(r, c);
                 Tile t2 = game.getBoard().getTile(r, c + 1);
                 Tile t3 = game.getBoard().getTile(r, c + 2);
-                if (t1.getPlant() != null && t2.getPlant() != null && t3.getPlant() != null) {
+                if (!hasCrater(r, c) && !hasCrater(r, c + 1) && !hasCrater(r, c + 2) &&
+                    t1.getPlant() != null && t2.getPlant() != null && t3.getPlant() != null) {
                     String name1 = t1.getPlant().getName();
                     String name2 = t2.getPlant().getName();
                     String name3 = t3.getPlant().getName();
@@ -129,12 +267,14 @@ public class Beghoul extends MiniGame {
             }
         }
 
+        // Check vertical matches
         for (int c = 0; c < 9; c++) {
             for (int r = 0; r < 3; r++) {
                 Tile t1 = game.getBoard().getTile(r, c);
                 Tile t2 = game.getBoard().getTile(r + 1, c);
                 Tile t3 = game.getBoard().getTile(r + 2, c);
-                if (t1.getPlant() != null && t2.getPlant() != null && t3.getPlant() != null) {
+                if (!hasCrater(r, c) && !hasCrater(r + 1, c) && !hasCrater(r + 2, c) &&
+                    t1.getPlant() != null && t2.getPlant() != null && t3.getPlant() != null) {
                     String name1 = t1.getPlant().getName();
                     String name2 = t2.getPlant().getName();
                     String name3 = t3.getPlant().getName();
@@ -174,6 +314,7 @@ public class Beghoul extends MiniGame {
         }
 
         game.addSun(baseSunReward);
+        game.getGameLogMessages().add("Beghoul: Match of " + matchSizeCount + "! +" + baseSunReward + " suns. (" + matchesFormed + "/" + targetMatches + ")");
 
         applyGravityAndRefill(game);
         return true;
