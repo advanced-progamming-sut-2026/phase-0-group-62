@@ -76,13 +76,22 @@
       {
         "content": "New plant unlocked: Sunflower!",
         "isRead": true
+      },
+      {
+        "content": "New plant unlocked: Cabbage-pult! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "Congratulations! New levels and mini-games are now unlocked.",
+        "isRead": false
       }
     ],
-    "coins": 500,
+    "coins": 19500,
     "gems": 0,
     "unlockedPlants": [
       "PeaShooter",
-      "sunflower"
+      "sunflower",
+      "Cabbage-pult"
     ],
     "observedZombies": [
       "NormalZombie",
@@ -90,7 +99,8 @@
     ],
     "plantLevels": {
       "PeaShooter": 2,
-      "sunflower": 1
+      "sunflower": 1,
+      "Cabbage-pult": 1
     },
     "plantFoodInventory": 0,
     "greenhousePots": [

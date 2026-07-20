@@ -29,7 +29,8 @@ public class FrostbiteCaves extends Season {
         Board board = game.getBoard();
         Random rand = new Random();
         int windLane = rand.nextInt(board.getRows());
-        System.out.println("Ice wind hit row " + windLane + "!");
+        game.getGameLogMessages().add("Ice wind hit row " + windLane + "!");
+
         for (int col = 0; col < board.getColumns(); col++) {
             Plant p = game.getPlantAt(col, windLane);
             if (p != null) {

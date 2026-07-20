@@ -19,6 +19,7 @@ import java.util.Random;
 public class GameController extends Controller {
     private Game game;
     private boolean cooldownCheatActive = false;
+    private final List<String> accumulatedTurnLogs = new ArrayList<>();
 
     public GameController(MenuController controller) {
         super(controller);
@@ -76,6 +77,11 @@ public class GameController extends Controller {
         }
 
         Tile tile = game.getBoard().getTile(y, x);
+
+        if (tile != null && (tile.getType() == TileType.GRAVE || tile.isSlideway())) {
+            return "Error: Cannot plant on this tile! It is blocked by environment.";
+        }
+
         Plant check = game.getPlantAt(x, y);
 
         if (check != null && !check.getName().equalsIgnoreCase("Lily Pad")) {
@@ -113,7 +119,6 @@ public class GameController extends Controller {
             }
             if (check != null && check.getName().equalsIgnoreCase("Lily Pad") && !isNewAquatic) {
                 tile.setSupportPlant(check);
-                game.removePlant(check);
             }
         }
 
@@ -431,9 +436,19 @@ public class GameController extends Controller {
                 game.getSpawner().ticksSinceLastSpawn = 1;
             }
             game.tick();
+
+
+            accumulatedTurnLogs.addAll(game.getRawLogMessagesDirectly());
+
             actualTicksExecuted++;
         }
         return actualTicksExecuted;
+    }
+
+    public List<String> extractAccumulatedTurnLogs() {
+        List<String> copy = new ArrayList<>(accumulatedTurnLogs);
+        accumulatedTurnLogs.clear();
+        return copy;
     }
 
     public boolean isCooldownCheatActive() {

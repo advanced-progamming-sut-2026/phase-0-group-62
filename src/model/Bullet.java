@@ -8,20 +8,20 @@ public class Bullet {
     private boolean pierce;
     private boolean explosive;
     private int splashRadius;
-    private int targetRow; // For homing/burst bullets
+    private int targetRow;
     private boolean active;
 
     public enum BulletType {
         NORMAL,
-        ICE,        // Slows zombies
-        FIRE,       // Double damage, melts ice
-        POISON,     // Damage over time, ignores armor
-        LASER,      // Pierces through all zombies
-        LOB,        // Lobbed over obstacles
-        HOMING,     // Tracks zombies
-        STRIKE_THROUGH, // Hits all in lane
-        ELECTRIC,   // Chain lightning
-        MAGIC       // Special effects
+        ICE,
+        FIRE,
+        POISON,
+        LASER,
+        LOB,
+        HOMING,
+        STRIKE_THROUGH,
+        ELECTRIC,
+        MAGIC
     }
 
     public Bullet(int damage, int row, int column) {
@@ -41,11 +41,7 @@ public class Bullet {
     }
 
     public void move() {
-        if (type == BulletType.LOB) {
-            column += 0.5;
-        } else {
-            column++;
-        }
+        column++;
     }
 
     public int getDamage() { return damage; }

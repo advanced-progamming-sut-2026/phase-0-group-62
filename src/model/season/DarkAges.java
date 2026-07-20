@@ -25,7 +25,7 @@ public class DarkAges extends Season {
 
     @Override
     public void handleWaveStart(Game game) {
-        Board board = game.getBoard();
+        Board board = board = game.getBoard();
         for (int r = 0; r < board.getRows(); r++) {
             for (int c = 0; c < board.getColumns(); c++) {
                 Tile tile = board.getTile(r, c);
@@ -34,7 +34,7 @@ public class DarkAges extends Season {
                     if (zombie != null) {
                         tile.setZombie(zombie);
                         game.addZombie(zombie);
-                        System.out.println("Necromancy! A zombie raised from the grave at (" + c + ", " + r + ")!");
+                        game.getGameLogMessages().add("Necromancy! A zombie raised from the grave at (" + c + ", " + r + ")!");
                     }
                 }
             }
@@ -49,7 +49,16 @@ public class DarkAges extends Season {
             if (tile != null && tile.isEmpty() && tile.getType() == TileType.GRASS) {
                 int sunReward = (rand.nextInt(100) < 30) ? 50 : 0;
                 boolean pfReward = (sunReward == 0 && rand.nextInt(100) < 15);
+
                 board.setupGrave(r, c, 700, sunReward, pfReward);
+
+                if (sunReward > 0) {
+                    game.getGameLogMessages().add("A new special grave containing 50 suns formed at (" + c + ", " + r + ")");
+                } else if (pfReward) {
+                    game.getGameLogMessages().add("A new special grave containing a Plant Food formed at (" + c + ", " + r + ")");
+                } else {
+                    game.getGameLogMessages().add("A new grave formed at (" + c + ", " + r + ")");
+                }
             }
         }
     }

@@ -26,18 +26,51 @@ public class PreGameController {
             if (chapter == null) {
                 return "Error: Please specify a chapter using -c <chaptername>";
             }
-            if (chapter.equalsIgnoreCase("AncientEgypt") || chapter.equalsIgnoreCase("Ancient Egypt") || chapter.equalsIgnoreCase("Egypt")) {
+
+            String lowerCh = chapter.trim().toLowerCase();
+
+            if (lowerCh.equals("ancientegypt") || lowerCh.equals("egypt")) {
                 activeChapterName = "AncientEgypt";
-                return "Successfully entered chapter: AncientEgypt";
-            } else if (chapter.equalsIgnoreCase("FrostbiteCaves") || chapter.equalsIgnoreCase("Frostbite Caves")) {
+                return "Successfully entered chapter: AncientEgypt (Level 1)";
+            } else if (lowerCh.equals("ancientegypt2")) {
+                activeChapterName = "AncientEgypt2";
+                return "Successfully entered chapter: AncientEgypt (Level 2 - Night Ops)";
+            } else if (lowerCh.equals("ancientegypt3")) {
+                activeChapterName = "AncientEgypt3";
+                return "Successfully entered chapter: AncientEgypt (Level 3 - Dead Line)";
+            }
+
+            else if (lowerCh.equals("frostbitecaves") || lowerCh.equals("caves")) {
                 activeChapterName = "FrostbiteCaves";
-                return "Successfully entered chapter: FrostbiteCaves";
-            } else if (chapter.equalsIgnoreCase("BigWaveBeach") || chapter.equalsIgnoreCase("Big Wave Beach")) {
+                return "Successfully entered chapter: FrostbiteCaves (Level 1)";
+            } else if (lowerCh.equals("frostbitecaves2")) {
+                activeChapterName = "FrostbiteCaves2";
+                return "Successfully entered chapter: FrostbiteCaves (Level 2 - Save Our Seeds)";
+            } else if (lowerCh.equals("frostbitecaves3")) {
+                activeChapterName = "FrostbiteCaves3";
+                return "Successfully entered chapter: FrostbiteCaves (Level 3 - Timed War)";
+            }
+
+            else if (lowerCh.equals("bigwavebeach") || lowerCh.equals("beach")) {
                 activeChapterName = "BigWaveBeach";
-                return "Successfully entered chapter: BigWaveBeach";
-            } else if (chapter.equalsIgnoreCase("DarkAges") || chapter.equalsIgnoreCase("Dark Ages")) {
+                return "Successfully entered chapter: BigWaveBeach (Level 1)";
+            } else if (lowerCh.equals("bigwavebeach2")) {
+                activeChapterName = "BigWaveBeach2";
+                return "Successfully entered chapter: BigWaveBeach (Level 2 - Night Ops)";
+            } else if (lowerCh.equals("bigwavebeach3")) {
+                activeChapterName = "BigWaveBeach3";
+                return "Successfully entered chapter: BigWaveBeach (Level 3 - Dead Line)";
+            }
+
+            else if (lowerCh.equals("darkages")) {
                 activeChapterName = "DarkAges";
-                return "Successfully entered chapter: DarkAges";
+                return "Successfully entered chapter: DarkAges (Level 1)";
+            } else if (lowerCh.equals("darkages2")) {
+                activeChapterName = "DarkAges2";
+                return "Successfully entered chapter: DarkAges (Level 2 - Save Our Seeds)";
+            } else if (lowerCh.equals("darkages3")) {
+                activeChapterName = "DarkAges3";
+                return "Successfully entered chapter: DarkAges (Level 3 - Timed War)";
             } else {
                 return "Error: Unknown chapter name.";
             }

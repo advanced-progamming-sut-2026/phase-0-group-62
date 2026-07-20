@@ -51,9 +51,11 @@ public class Level {
                 targetSunsToProduce = 100;
                 break;
             case NIGHT_OPS:
+                initialSunAmount = 50;
                 break;
             case DEAD_LINE:
                 deadlineColumn = 3;
+                initialSunAmount = 150;
                 break;
             case LOVE_YOUR_PLANTS:
                 maxPlantsLostAllowed = 3;

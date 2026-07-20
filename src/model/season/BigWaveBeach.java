@@ -40,8 +40,9 @@ public class BigWaveBeach extends Season {
     public void handleWaveStart(Game game) {
         Board board = game.getBoard();
         Random rand = new Random();
-        waterLevel = rand.nextInt(4) + 2; // جزر و مد بین ۲ تا ۵ ستون نوسان دارد
-        System.out.println("The tide changed! Water level is now " + waterLevel + " columns wide.");
+
+        waterLevel = rand.nextInt(4) + 2;
+        game.getGameLogMessages().add("The tide changed! Water level is now " + waterLevel + " columns wide.");
         updateWaterTiles(board);
 
         for (Plant p : new ArrayList<>(game.getActivePlants())) {
@@ -49,10 +50,29 @@ public class BigWaveBeach extends Season {
             if (t != null && t.getType() == TileType.WATER) {
                 boolean isAquatic = p.isAquatic();
                 boolean hasLilyPad = (t.getSupportPlant() != null && t.getSupportPlant().getName().equalsIgnoreCase("Lily Pad"));
+
                 if (!isAquatic && !hasLilyPad) {
                     game.getActivePlants().remove(p);
                     t.setPlant(null);
-                    System.out.println("Plant " + p.getName() + " drowned in the rising tide!");
+                    game.getGameLogMessages().add("Plant " + p.getName() + " drowned in the rising tide!");
+                }
+            }
+        }
+    }
+
+    @Override
+    public void handleTick(Game game) {
+        Board board = game.getBoard();
+        for (Plant p : new ArrayList<>(game.getActivePlants())) {
+            Tile t = board.getTile(p.getY(), p.getX());
+            if (t != null && t.getType() == TileType.WATER) {
+                boolean isAquatic = p.isAquatic();
+                boolean hasLilyPad = (t.getSupportPlant() != null && t.getSupportPlant().getName().equalsIgnoreCase("Lily Pad"));
+
+                if (!isAquatic && !hasLilyPad) {
+                    game.getActivePlants().remove(p);
+                    t.setPlant(null);
+                    game.getGameLogMessages().add("Plant " + p.getName() + " drowned in the ocean tide!");
                 }
             }
         }

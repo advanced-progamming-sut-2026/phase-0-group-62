@@ -13,6 +13,7 @@ import model.minigame.Vasebreaker;
 import model.minigame.IZombie;
 import model.minigame.Beghoul;
 import model.minigame.WallnutBowling;
+import controller.menu.PreGameController;
 
 public class GameView extends View {
     public void showBoard(Board board) {
@@ -29,25 +30,49 @@ public class GameView extends View {
         printHeader(game);
         printConveyorBeltIfActive(game);
         printGrid(game);
-        showMessage("=========================================================================================\n");
+        showMessage("==================================================================================================\n");
     }
 
     private void printHeader(Game game) {
-        showMessage("\n=========================================================================================");
+        showMessage("\n==================================================================================================");
+        String ch = PreGameController.activeChapterName;
+        String levelLabel = "Level 1 (Normal Mode)";
+
+        if (ch != null) {
+            if (ch.endsWith("2")) {
+                if (ch.startsWith("AncientEgypt") || ch.startsWith("BigWaveBeach")) {
+                    levelLabel = "Level 2 (Night Ops Mode)";
+                } else {
+                    levelLabel = "Level 2 (Save Our Seeds Mode)";
+                }
+            } else if (ch.endsWith("3")) {
+                if (ch.startsWith("AncientEgypt") || ch.startsWith("BigWaveBeach")) {
+                    levelLabel = "Level 3 (Dead Line Mode)";
+                } else {
+                    levelLabel = "Level 3 (Timed War Mode)";
+                }
+            } else if (game.getLevel().getSpecialLevelType() != SpecialLevelType.NONE) {
+                levelLabel = "Special Mode: " + game.getLevel().getSpecialLevelType();
+            }
+        }
+
+        String seasonName = (game.getCurrentSeason() != null) ? game.getCurrentSeason().getName() : "Normal";
+        showMessage(" SEASON: " + seasonName.toUpperCase() + " | MATCH STATUS: " + levelLabel.toUpperCase());
+
         if (game.getActiveMiniGame() instanceof IZombie) {
             IZombie iz = (IZombie) game.getActiveMiniGame();
             showMessage(" TICK: " + game.getTickCount() + " | ZOMBIE SUNS: " + iz.getZombieSunCount() + " | BRAINS EATEN: " + iz.getBrainsEaten() + "/5");
         } else {
             showMessage(" TICK: " + game.getTickCount() + " | SUNS: " + game.getSunCount() + " | COINS: " + game.getCoins() + " | GEMS: " + game.getDiamonds() + " | FOODS: " + game.getPlantFoodCount());
         }
-        showMessage("=========================================================================================");
+        showMessage("==================================================================================================");
     }
 
     private void printConveyorBeltIfActive(Game game) {
         if (game.getLevel().getSpecialLevelType() == SpecialLevelType.CONVEYOR_BELT || game.getActiveMiniGame() instanceof WallnutBowling) {
             if (!game.getConveyorBeltPlants().isEmpty()) {
                 showMessage(" [CONVEYOR BELT]: " + String.join(" | ", game.getConveyorBeltPlants()));
-                showMessage("-----------------------------------------------------------------------------------------");
+                showMessage("--------------------------------------------------------------------------------------------------");
             }
         }
     }
@@ -61,15 +86,17 @@ public class GameView extends View {
 
             if (game.getActiveMiniGame() instanceof IZombie) {
                 IZombie iz = (IZombie) game.getActiveMiniGame();
-                rowStr.append(iz.isBrainRowEaten(r) ? "[X] " : "[B] ");
+                rowStr.append(iz.isBrainRowEaten(r) ? "[ X] " : "[ B] ");
             } else {
-                rowStr.append(mowers[r].isUsed() ? "[X] " : "[M] ");
+                rowStr.append(mowers[r].isUsed() ? "[ X] " : "[ M] ");
             }
 
-            for (int c = 0; c < board.getColumns(); c++) {
+            for (int c = 0; c < 9; c++) {
                 Tile tile = board.getTile(r, c);
                 String cellContent = getCellContent(game, tile, r, c);
-                rowStr.append(String.format("[%5s] ", cellContent));
+
+                String paddedContent = String.format("%-4s", cellContent);
+                rowStr.append("[").append(paddedContent).append("] ");
             }
             showMessage(rowStr.toString());
         }
@@ -100,34 +127,44 @@ public class GameView extends View {
             }
         }
 
+        Zombie z = getZombieAtTile(game, c, r);
+        if (z != null) {
+            if (z.getFrozenIceHealth() > 0) {
+                return "#" + z.getFrozenIceHealth();
+            }
+            return "Z" + z.getHealth();
+        }
+
         Plant p = game.getPlantAt(c, r);
         if (p == null && tile != null && tile.getSupportPlant() != null) {
             p = tile.getSupportPlant();
         }
-
-        Zombie z = getZombieAtTile(game, c, r);
-        Sun s = getSunAtTile(game, c, r);
 
         if (p != null) {
             String prefix = p.isBowlingBall() ? "B-" : (p.isFrozen() ? "#" : "P");
             return prefix + p.getHealth();
         }
 
-        if (z != null) {
-            return "Z" + z.getHealth();
-        }
-
+        Sun s = getSunAtTile(game, c, r);
         if (s != null) {
             return "*";
         }
 
         if (tile != null) {
-            if (tile.getType() == TileType.WATER) return "~~";
-            if (tile.getType() == TileType.ICE) return "ICE";
+            if (tile.getType() == TileType.WATER) return "~~~";
             if (tile.getType() == TileType.GRAVE) {
-                if (tile.getSunReward() > 0) return "G$";
-                if (tile.hasPlantFoodReward()) return "G*";
-                return "G";
+                if (tile.getSunReward() > 0) return "$" + tile.getGraveHealth();
+                if (tile.hasPlantFoodReward()) return "F" + tile.getGraveHealth();
+                return "G" + tile.getGraveHealth();
+            }
+            if (tile.isSlideway()) {
+                return tile.getSlideRowOffset() > 0 ? "v" : "^";
+            }
+            if (tile.isNecromancyTile()) {
+                return "NEC";
+            }
+            if (tile.isLowBeach()) {
+                return "LOW";
             }
         }
 

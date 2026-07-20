@@ -453,6 +453,10 @@ public class Game {
                 won = true;
                 running = false;
                 gameLogMessages.add("Dear humanz, zis is not done yet; we will come back to eat your brainz, humanz.");
+                if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+                    model.UserSession.getCurrentUser().addNews("Congratulations! New levels and mini-games are now unlocked.");
+                    util.FileManager.updateUser(model.UserSession.getCurrentUser());
+                }
                 return;
             }
             if (tickCount >= level.getTimeLimitTicks()) {
@@ -616,6 +620,13 @@ public class Game {
             } else {
                 Zombie newlySpawned = spawner.update();
                 if (newlySpawned != null) {
+                    if (currentSeason != null && "AncientEgypt".equalsIgnoreCase(currentSeason.getName()) && spawner.isFinalWave()) {
+                        int currentWave = spawner.getCurrentWave();
+                        int totalWaves = spawner.getTotalWaves();
+                        int defaultColumn = board.getColumns() - 1;
+                        int modifiedCol = currentSeason.modifySpawnColumn(currentWave, totalWaves, defaultColumn, spawner.getZombiesSpawnedInWave(), board, newlySpawned.getY());
+                        newlySpawned.setX(modifiedCol);
+                    }
                     activeZombies.add(newlySpawned);
                     int cost = model.entities.zombie.factory.ZombieFactory.getWaveCost(newlySpawned.getName());
                     gameLogMessages.add("Zombie " + newlySpawned.getName() + " spawned at wave " + spawner.getCurrentWave() + " in lane " + newlySpawned.getY() + " which costed " + cost + ".");
@@ -629,6 +640,20 @@ public class Game {
 
         if (currentSeason != null) {
             currentSeason.handleTick(this);
+            if (currentSeason.getName().equalsIgnoreCase("BigWaveBeach")) {
+                for (Plant p : new ArrayList<>(activePlants)) {
+                    Tile t = board.getTile(p.getY(), p.getX());
+                    if (t != null && t.getType() == TileType.WATER) {
+                        boolean isAquatic = p.isAquatic();
+                        boolean hasLilyPad = (t.getSupportPlant() != null && t.getSupportPlant().getName().equalsIgnoreCase("Lily Pad"));
+                        if (!isAquatic && !hasLilyPad) {
+                            activePlants.remove(p);
+                            t.setPlant(null);
+                            gameLogMessages.add("Plant " + p.getName() + " drowned in the rising tide!");
+                        }
+                    }
+                }
+            }
         }
 
         for (int r = 0; r < board.getRows(); r++) {
@@ -647,8 +672,12 @@ public class Game {
         for (Plant plant : activePlants) {
             if (plant.isFrozen() || plant.isBowlingBall()) continue;
             if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SHOOTER")) {
-                if (plant.shouldShoot() && hasZombieInRow(plant.getY())) {
-                    bullets.add(new Bullet(20, plant.getY(), plant.getX() + 1));
+                if (plant.shouldShoot() && (hasZombieInRow(plant.getY()) || board.hasGraveInRow(plant.getY()))) {
+                    Bullet.BulletType bType = Bullet.BulletType.NORMAL;
+                    if (plant.getName().toLowerCase().contains("pult") || plant.getName().toLowerCase().contains("melon")) {
+                        bType = Bullet.BulletType.LOB;
+                    }
+                    bullets.add(new Bullet(20, plant.getY(), plant.getX() + 1, bType, false, false, 0));
                 }
             }
         }
@@ -673,6 +702,10 @@ public class Game {
                     running = false;
                     scoreGame.onWaveCompleted(spawner.getCurrentWave());
                     gameLogMessages.add("Dear humanz, zis is not done yet; we will come back to eat your brainz, humanz.");
+                    if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+                        model.UserSession.getCurrentUser().addNews("Congratulations! New levels and mini-games are now unlocked.");
+                        util.FileManager.updateUser(model.UserSession.getCurrentUser());
+                    }
                 }
             } else if (!spawner.isWaveComplete()) {
                 double healthSum = 0;
@@ -702,6 +735,11 @@ public class Game {
                 }
             }
         }
+    }
+    public List<String> getRawLogMessagesDirectly() {
+        List<String> currentMessages = new ArrayList<>(gameLogMessages);
+        gameLogMessages.clear();
+        return currentMessages;
     }
 
     private void handleSunDrop() {

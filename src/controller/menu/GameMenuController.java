@@ -3,6 +3,7 @@ package controller.menu;
 import model.Game;
 import model.Tile;
 import model.enums.Difficulty;
+import model.enums.SpecialLevelType;
 import model.entities.zombie.factory.ZombieFactory;
 import model.entities.zombie.Zombie;
 import model.entities.plant.Plant;
@@ -38,23 +39,39 @@ public class GameMenuController extends Controller {
             } else if (ch.startsWith("Beghoul")) {
                 this.game.setActiveMiniGame(new model.minigame.Beghoul());
             }
-        } else {
+        } else if (ch != null) {
             Season season = null;
-            if ("AncientEgypt".equals(ch)) {
+
+            if (ch.startsWith("AncientEgypt")) {
                 season = new AncientEgypt();
-            } else if ("FrostbiteCaves".equals(ch)) {
-                season = new FrostbiteCaves();
-            } else if ("BigWaveBeach".equals(ch)) {
-                season = new BigWaveBeach();
-            } else if ("DarkAges".equals(ch)) {
-                season = new DarkAges();
+                if (ch.endsWith("2")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.NIGHT_OPS);
+                else if (ch.endsWith("3")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.DEAD_LINE);
             }
+            else if (ch.startsWith("FrostbiteCaves")) {
+                season = new FrostbiteCaves();
+                if (ch.endsWith("2")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.SAVE_OUR_SEEDS);
+                else if (ch.endsWith("3")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.TIMED_WAR);
+            }
+            else if (ch.startsWith("BigWaveBeach")) {
+                season = new BigWaveBeach();
+                if (ch.endsWith("2")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.NIGHT_OPS);
+                else if (ch.endsWith("3")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.DEAD_LINE);
+            }
+            else if (ch.startsWith("DarkAges")) {
+                season = new DarkAges();
+                if (ch.endsWith("2")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.SAVE_OUR_SEEDS);
+                else if (ch.endsWith("3")) this.game.getLevel().setSpecialLevelType(SpecialLevelType.TIMED_WAR);
+            }
+
             if (season != null) {
                 this.game.setCurrentSeason(season);
             }
         }
-
         this.game.start();
+
+        this.game.setupSpecialLevelFeatures();
+        this.game.setSunCount(this.game.getLevel().getInitialSunAmount());
+
         this.gameController = new GameController(menuController);
         this.gameController.setGame(this.game);
         this.parser = new CommandParser();
@@ -86,15 +103,18 @@ public class GameMenuController extends Controller {
             }
             int waveBefore = game.getSpawner() != null ? game.getSpawner().getCurrentWave() : 0;
             int sunsBefore = game.getSuns().size();
+
             int executed = gameController.advanceTime(ticks);
             String report = "Time advanced by " + executed + " ticks.";
+
             if (game.getSpawner() != null && game.getSpawner().getCurrentWave() > waveBefore) {
                 report += "\n[WAVE] ---> A new Wave started! Current Wave: " + game.getSpawner().getCurrentWave();
             }
             if (game.getSuns().size() > sunsBefore && !"DarkAges".equals(PreGameController.activeChapterName)) {
                 report += "\n[SUN] A natural sun fell from sky!";
             }
-            List<String> logs = game.getGameLogMessages();
+
+            List<String> logs = gameController.extractAccumulatedTurnLogs();
             for (String log : logs) {
                 report += "\n" + log;
             }
@@ -250,6 +270,12 @@ public class GameMenuController extends Controller {
                 String[] coords = loc.split(",");
                 int x = Integer.parseInt(coords[0].trim());
                 int y = Integer.parseInt(coords[1].trim());
+
+                // رفع باگ قطعی: جلوگیری از ثبت زامبی خارج از محدوده سطرهای بورد
+                if (y < 0 || y >= game.getBoard().getRows() || x < 0 || x >= game.getBoard().getColumns()) {
+                    return "Error: Coordinates out of board bounds! Maximum row allowed is " + (game.getBoard().getRows() - 1);
+                }
+
                 String formattedType = type.equalsIgnoreCase("normalzombie") ? "NormalZombie" : type;
                 Zombie z = ZombieFactory.createZombieAtColumn(formattedType, y, x);
                 if (z != null) {
@@ -287,36 +313,6 @@ public class GameMenuController extends Controller {
                         return "Invalid cheat format.";
                     }
                 }
-            }
-        }
-        if (action.equalsIgnoreCase("cheat spawn-zombie")) {
-            String type = cmd.getArg("-t");
-            String loc = cmd.getArg("-l");
-            if (type == null || loc == null) {
-                return "Usage: cheat spawn-zombie -t <type> -l (<x>, <y>)";
-            }
-            try {
-                loc = loc.replace("(", "").replace(")", "");
-                String[] coords = loc.split(",");
-                int x = Integer.parseInt(coords[0].trim());
-                int y = Integer.parseInt(coords[1].trim());
-                String formattedType = type.equalsIgnoreCase("normalzombie") ? "NormalZombie" : type;
-                Zombie z = ZombieFactory.createZombieAtColumn(formattedType, y, x);
-                if (z != null) {
-                    if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
-                        List<String> observed = model.UserSession.getCurrentUser().getObservedZombies();
-                        if (!observed.contains(z.getName())) {
-                            observed.add(z.getName());
-                            model.UserSession.getCurrentUser().addNews("New zombie encountered via cheat: " + z.getName() + "!");
-                            util.FileManager.updateUser(model.UserSession.getCurrentUser());
-                        }
-                    }
-                    game.addZombie(z);
-                    return "Zombie spawned via cheat.";
-                }
-                return "Invalid zombie type.";
-            } catch (Exception e) {
-                return "Invalid format! Use: cheat spawn-zombie -t <type> -l (<x>, <y>)";
             }
         }
 
