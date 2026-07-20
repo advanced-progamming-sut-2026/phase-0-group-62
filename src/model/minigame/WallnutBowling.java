@@ -10,11 +10,23 @@ import java.util.Random;
 public class WallnutBowling extends MiniGame {
     private int deadlineColumn;
     private int redLineX;
+    private int stageLevel;
+    private int maxStageLevel;
+    private int zombiesDefeated;
+    private int targetZombies;
+    private int waveCount;
+    private int maxWaves;
 
     public WallnutBowling() {
         super("WallnutBowling");
         this.deadlineColumn = 3;
         this.redLineX = 3;
+        this.stageLevel = 1;
+        this.maxStageLevel = 3;
+        this.zombiesDefeated = 0;
+        this.targetZombies = 10;
+        this.waveCount = 0;
+        this.maxWaves = 5;
     }
 
     public int getDeadlineColumn() {
@@ -33,13 +45,112 @@ public class WallnutBowling extends MiniGame {
         this.redLineX = redLineX;
     }
 
+    public int getStageLevel() {
+        return stageLevel;
+    }
+
+    public void setStageLevel(int stageLevel) {
+        this.stageLevel = Math.min(stageLevel, maxStageLevel);
+        updateLevelParameters();
+    }
+
+    private void updateLevelParameters() {
+        switch (stageLevel) {
+            case 1:
+                targetZombies = 10;
+                maxWaves = 5;
+                deadlineColumn = 3;
+                break;
+            case 2:
+                targetZombies = 20;
+                maxWaves = 7;
+                deadlineColumn = 4;
+                break;
+            case 3:
+                targetZombies = 30;
+                maxWaves = 10;
+                deadlineColumn = 5;
+                break;
+            default:
+                targetZombies = 10;
+                maxWaves = 5;
+                deadlineColumn = 3;
+        }
+    }
+
+    private void spawnZombieWave(Game game) {
+        Random rand = new Random();
+        int numZombies = 1 + (stageLevel - 1) + rand.nextInt(stageLevel + 1);
+        List<String> zombieTypes = new ArrayList<>();
+        zombieTypes.add("NormalZombie");
+        if (stageLevel >= 2) zombieTypes.add("ConeZombie");
+        if (stageLevel >= 3) zombieTypes.add("BucketZombie");
+
+        for (int i = 0; i < numZombies; i++) {
+            String type = zombieTypes.get(rand.nextInt(zombieTypes.size()));
+            int lane = rand.nextInt(game.getBoard().getRows());
+            int spawnCol = game.getBoard().getColumns() - 1;
+            Zombie z = model.entities.zombie.factory.ZombieFactory.createZombieAtColumn(type, lane, spawnCol);
+            if (z != null) {
+                game.addZombie(z);
+                game.getBoard().getTile(lane, spawnCol).setZombie(z);
+                game.getGameLogMessages().add("WallnutBowling: " + type + " spawned in lane " + lane);
+            }
+        }
+        waveCount++;
+        game.getGameLogMessages().add("WallnutBowling: Wave " + waveCount + " of " + maxWaves + " started!");
+    }
+
     public void updateMiniGame(Game game) {
+        // Conveyor belt gives walnuts
         if (game.getTickCount() == 1 || game.getTickCount() % 120 == 0) {
             Random rand = new Random();
-            String roll = rand.nextInt(100) < 70 ? "Bowling Wallnut" : (rand.nextInt(100) < 50 ? "Explode O' Nut" : "Giant Wallnut");
-            game.getConveyorBeltPlants().add(roll);
+            int roll = rand.nextInt(100);
+            String walnutType;
+            if (roll < 70) {
+                walnutType = "Bowling Wallnut";
+            } else if (roll < 90) {
+                walnutType = "Explode O' Nut";
+            } else {
+                walnutType = "Giant Wallnut";
+            }
+            game.getConveyorBeltPlants().add(walnutType);
         }
 
+        // Spawn zombie waves
+        if (game.getTickCount() % 200 == 0 && waveCount < maxWaves && game.getActiveZombies().size() < 5) {
+            spawnZombieWave(game);
+        }
+
+        // Check if all zombies are defeated and waves are done
+        if (game.getActiveZombies().isEmpty() && waveCount >= maxWaves) {
+            if (stageLevel < maxStageLevel) {
+                // Complete level, advance to next
+                completeLevel(stageLevel, zombiesDefeated);
+                System.out.println("WallnutBowling: Level " + stageLevel + " complete! Moving to Level " + (stageLevel + 1));
+                stageLevel++;
+                updateLevelParameters();
+                waveCount = 0;
+                zombiesDefeated = 0;
+                // Reset board
+                for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+                    game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
+                    game.removeZombie(z);
+                }
+                game.getGameLogMessages().add("WallnutBowling: New level started! Level " + stageLevel);
+                // Start first wave
+                spawnZombieWave(game);
+                return;
+            } else {
+                game.setWon(true);
+                game.stop();
+                System.out.println("WallnutBowling: All levels complete! Victory!");
+                game.getGameLogMessages().add("Dear humanz, zis is not done yet; we will come back to eat your brainz, humanz.");
+                return;
+            }
+        }
+
+        // Process bowling balls
         for (Plant ball : new ArrayList<>(game.getActivePlants())) {
             if (ball.isBowlingBall()) {
                 if (game.getTickCount() % 5 == 0) {
@@ -73,6 +184,10 @@ public class WallnutBowling extends MiniGame {
                     if (target != null) {
                         if (ball.getName().equalsIgnoreCase("Giant Wallnut")) {
                             target.takeDamage(target.getMaxHealth(), false);
+                            if (!target.isAlive()) {
+                                zombiesDefeated++;
+                                game.getScoreGame().onZombieKilled(target, game);
+                            }
                         } else if (ball.getName().equalsIgnoreCase("Explode O' Nut")) {
                             List<Zombie> blastTargets = new ArrayList<>();
                             for (Zombie az : game.getActiveZombies()) {
@@ -83,6 +198,8 @@ public class WallnutBowling extends MiniGame {
                             for (Zombie bt : blastTargets) {
                                 bt.takeDamage(500, false);
                                 if (!bt.isAlive()) {
+                                    zombiesDefeated++;
+                                    game.getScoreGame().onZombieKilled(bt, game);
                                     game.getActiveZombies().remove(bt);
                                     game.getBoard().getTile(bt.getY(), (int) bt.getX()).setZombie(null);
                                 }
@@ -92,6 +209,12 @@ public class WallnutBowling extends MiniGame {
                         } else {
                             target.takeDamage(200, false);
                             ball.incrementHitCount();
+                            if (!target.isAlive()) {
+                                zombiesDefeated++;
+                                game.getScoreGame().onZombieKilled(target, game);
+                                game.getActiveZombies().remove(target);
+                                game.getBoard().getTile(target.getY(), (int) target.getX()).setZombie(null);
+                            }
                             if (ball.getHitCount() == 1) {
                                 ball.setDy(new Random().nextBoolean() ? 1 : -1);
                             } else {
@@ -106,6 +229,17 @@ public class WallnutBowling extends MiniGame {
                         }
                     }
                 }
+            }
+        }
+
+        // Check loss condition (zombie passed deadline)
+        for (Zombie z : game.getActiveZombies()) {
+            if (z.getX() <= deadlineColumn) {
+                game.setLost(true);
+                game.stop();
+                System.out.println("WallnutBowling: Game Over! A zombie passed the deadline!");
+                game.getGameLogMessages().add("The zombie ate your brain; LOSER!!!");
+                return;
             }
         }
     }
