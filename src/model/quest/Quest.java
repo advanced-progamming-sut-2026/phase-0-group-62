@@ -61,6 +61,15 @@ public class Quest {
         this.variableN = 0;
     }
 
+
+// Add this method to Quest.java
+public void resetProgress() {
+    this.progress = 0;
+    if (this.status == QuestStatus.IN_PROGRESS) {
+        this.status = QuestStatus.AVAILABLE;
+    }
+}
+
     public void applyReward(User user) {
         if (status != QuestStatus.COMPLETED) return;
         
