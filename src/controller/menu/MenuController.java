@@ -578,6 +578,15 @@ public class MenuController {
         }
     }
 
+    // Add this method to MenuController.java
+public String processClaimQuests(ParsedCommand cmd) {
+    User currentUser = UserSession.getCurrentUser();
+    if (currentUser == null) {
+        return "Error: No user logged in.";
+    }
+    return currentUser.claimAllCompletedQuests();
+}
+
     public void handleCollectionMenuInput(String input) {
         if (input.equalsIgnoreCase("back")) {
             MenuManager.getInstance().setCurrentMenu(new MainMenu(this));
