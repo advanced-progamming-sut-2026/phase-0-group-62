@@ -2,414 +2,295 @@ package model.minigame;
 
 import model.Game;
 import model.Tile;
+import model.entities.zombie.Zombie;
 import model.entities.plant.Plant;
 import model.entities.plant.factory.PlantFactory;
-import model.entities.zombie.Zombie;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Beghoul extends MiniGame {
-    private int matchesFormed;
-    private int targetMatches;
-    private boolean[][] craters;
+public class Vasebreaker extends MiniGame {
+    private String[][] vaseContents;
+    private boolean[][] vaseBroken;
+    private int totalVases;
+    private int brokenVasesCount;
     private int stageLevel;
     private int maxStageLevel;
     private boolean isSetup;
 
-    // Upgrade paths
-    private static final String[][] UPGRADE_PATHS = {
-        {"PeaShooter", "Repeater", "Threepeater"},
-        {"WallNut", "TallNut"},
-        {"Cabbagepult", "Melonpult", "WinterMelon"},
-        {"PuffShroom", "FumeShroom"},
-        {"SnowPea", "Repeater"} // Alternative path
-    };
+    // Special vase types
+    public static final String VASE_EMPTY = "empty";
+    public static final String VASE_ZOMBIE = "zombie";
+    public static final String VASE_GARGANTUAR = "gargantuar";
+    public static final String VASE_PLANT = "plant";
+    public static final String VASE_SPECIAL_PLANT = "special_plant";
+    public static final String VASE_SUN = "sun";
 
-    private static final int[][] UPGRADE_COSTS = {
-        {500, 1500},
-        {500},
-        {1000, 750},
-        {250},
-        {400}
-    };
+    private static final String[] PLANT_TYPES = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
 
-    public Beghoul() {
-        super("Beghoul");
-        this.matchesFormed = 0;
-        this.targetMatches = 10;
-        this.craters = new boolean[5][9];
+    public Vasebreaker() {
+        super("Vasebreaker");
+        this.vaseContents = new String[5][9];
+        this.vaseBroken = new boolean[5][9];
+        this.totalVases = 0;
+        this.brokenVasesCount = 0;
         this.stageLevel = 1;
         this.maxStageLevel = 3;
         this.isSetup = false;
     }
 
-    public void setupStage(Game game, int level) {
+    public void setupVaseGrid(int rows, int cols, int level) {
         this.stageLevel = level;
-        this.matchesFormed = 0;
-        this.targetMatches = 5 + level * 5; // Level 1: 10, Level 2: 15, Level 3: 20
-        this.craters = new boolean[5][9];
+        this.vaseContents = new String[rows][cols];
+        this.vaseBroken = new boolean[rows][cols];
+        this.totalVases = 0;
+        this.brokenVasesCount = 0;
         this.isSetup = true;
 
-        // Clear existing plants and zombies
-        for (Plant p : new ArrayList<>(game.getActivePlants())) {
-            game.getBoard().getTile(p.getY(), p.getX()).setPlant(null);
-            game.removePlant(p);
-        }
-        for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
-            game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
-            game.removeZombie(z);
-        }
-
-        // Different plant types per stage
-        String[][] stagePlants = {
-            {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Cabbagepult"},
-            {"PeaShooter", "Repeater", "TallNut", "SnowPea", "Melonpult", "PuffShroom"},
-            {"Repeater", "Threepeater", "TallNut", "WinterMelon", "FumeShroom", "BonkChoy"}
-        };
-
         Random rand = new Random();
-        String[] types = stagePlants[Math.min(level - 1, stagePlants.length - 1)];
-        fillGridRandomly(game, types);
-        
-        // Start with some matches already checked
-        while (checkAndProcessMatches(game, false)) {}
-        
-        game.getGameLogMessages().add("Beghoul: Stage " + level + " started!");
-        game.getGameLogMessages().add("Target matches: " + targetMatches);
-    }
 
-    public void fillGridRandomly(Game game, String[] types) {
-        Random rand = new Random();
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 9; c++) {
-                if (!hasCrater(r, c)) {
-                    Tile tile = game.getBoard().getTile(r, c);
-                    if (tile.getPlant() != null) {
-                        game.removePlant(tile.getPlant());
-                    }
-                    String type = types[rand.nextInt(types.length)];
-                    Plant p = PlantFactory.createPlant(type);
-                    if (p == null) {
-                        p = new Plant(rand.nextInt(1000) + 200, type, "BEGHOULD", null, 0, 300, 20, 2.0, 0, null, 0, null, 0);
-                    }
-                    p.setX(c);
-                    p.setY(r);
-                    game.addPlant(p);
-                    tile.setPlant(p);
-                }
+        // Determine number of vases based on stage level
+        int numVases = 8 + (level - 1) * 4; // Level 1: 8, Level 2: 12, Level 3: 16
+
+        // Determine special vase count
+        int numSpecial = Math.max(1, level); // Level 1: 1 special, Level 2: 2, Level 3: 3
+        int numGargantuar = level > 1 ? 1 : 0; // Gargantuars only from level 2+
+
+        // Place vases randomly
+        for (int i = 0; i < numVases; i++) {
+            int r, c;
+            int attempts = 0;
+            do {
+                r = rand.nextInt(rows);
+                c = rand.nextInt(cols);
+                attempts++;
+            } while ((vaseContents[r][c] != null || attempts < 50) && vaseContents[r][c] == null);
+
+            // Determine content
+            String content;
+            int roll = rand.nextInt(100);
+
+            // Special vases (Plant Vase with guaranteed seed)
+            if (i < numSpecial) {
+                content = VASE_SPECIAL_PLANT;
             }
-        }
-    }
-
-    public boolean upgradePlants(String fromType, String toType, Game game) {
-        int cost = getUpgradeCost(fromType, toType);
-        if (cost < 0) return false;
-        if (game.getSunCount() < cost) {
-            game.getGameLogMessages().add("Beghoul: Not enough suns! Required: " + cost);
-            return false;
-        }
-
-        game.spendSun(cost);
-        int upgradedCount = 0;
-
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 9; c++) {
-                Tile tile = game.getBoard().getTile(r, c);
-                if (!hasCrater(r, c) && tile.getPlant() != null && tile.getPlant().getName().equalsIgnoreCase(fromType)) {
-                    game.removePlant(tile.getPlant());
-                    Plant up = PlantFactory.createPlant(toType);
-                    if (up == null) {
-                        up = new Plant(new Random().nextInt(1000) + 200, toType, "BEGHOULD", null, 0, 400, 40, 1.5, 0, null, 0, null, 0);
-                    }
-                    up.setX(c);
-                    up.setY(r);
-                    game.addPlant(up);
-                    tile.setPlant(up);
-                    upgradedCount++;
-                }
+            // Gargantuar vase
+            else if (i < numSpecial + numGargantuar) {
+                content = VASE_GARGANTUAR;
             }
-        }
-
-        game.getGameLogMessages().add("Beghoul: Upgraded " + upgradedCount + " plants from " + fromType + " to " + toType + ".");
-        return upgradedCount > 0;
-    }
-
-    private int getUpgradeCost(String fromType, String toType) {
-        for (int i = 0; i < UPGRADE_PATHS.length; i++) {
-            String[] path = UPGRADE_PATHS[i];
-            for (int j = 0; j < path.length - 1; j++) {
-                if (path[j].equalsIgnoreCase(fromType) && path[j + 1].equalsIgnoreCase(toType)) {
-                    if (i < UPGRADE_COSTS.length && j < UPGRADE_COSTS[i].length) {
-                        return UPGRADE_COSTS[i][j];
-                    }
-                    // Fallback costs based on stage
-                    return stageLevel * 300 + 200;
-                }
+            // Normal distribution
+            else if (roll < 20) {
+                content = VASE_EMPTY;
+            } else if (roll < 60) {
+                content = VASE_ZOMBIE;
+            } else if (roll < 85) {
+                content = VASE_PLANT;
+            } else {
+                content = VASE_SUN;
             }
-        }
-        return -1;
-    }
 
-    public int getMatchesFormed() { return matchesFormed; }
-    public void addMatch() { this.matchesFormed++; }
-    public int getTargetMatches() { return targetMatches; }
-    public void setTargetMatches(int targetMatches) { this.targetMatches = targetMatches; }
-    public int getStageLevel() { return stageLevel; }
-    public void setStageLevel(int level) { this.stageLevel = Math.min(level, maxStageLevel); }
-
-    public boolean hasCrater(int r, int c) {
-        if (r >= 0 && r < 5 && c >= 0 && c < 9) return craters[r][c];
-        return false;
-    }
-
-    public void createCrater(int r, int c) {
-        if (r >= 0 && r < 5 && c >= 0 && c < 9) {
-            craters[r][c] = true;
+            vaseContents[r][c] = content;
+            totalVases++;
         }
     }
 
-    public void resetGridCraters() {
-        this.craters = new boolean[5][9];
+    public String getVaseContent(int r, int c) {
+        if (r >= 0 && r < vaseContents.length && c >= 0 && c < vaseContents[0].length) {
+            return vaseContents[r][c];
+        }
+        return null;
     }
 
-    public boolean isVictoryConditionMet() {
-        return matchesFormed >= targetMatches;
+    public void setVaseContent(int r, int c, String content) {
+        if (r >= 0 && r < vaseContents.length && c >= 0 && c < vaseContents[0].length) {
+            vaseContents[r][c] = content;
+            totalVases++;
+        }
     }
 
-    public void updateMiniGame(Game game) {
-        // Setup on first tick
-        if (!isSetup) {
-            setupStage(game, stageLevel);
+    public boolean isVaseBroken(int r, int c) {
+        if (r >= 0 && r < vaseBroken.length && c >= 0 && c < vaseBroken[0].length) {
+            return vaseBroken[r][c];
+        }
+        return true;
+    }
+
+    public void breakVase(int r, int c, Game game) {
+    if (r < 0 || r >= vaseBroken.length || c < 0 || c >= vaseBroken[0].length) return;
+    if (vaseBroken[r][c]) return;
+
+    vaseBroken[r][c] = true;
+    brokenVasesCount++;
+
+    String content = vaseContents[r][c];
+    Tile tile = game.getBoard().getTile(r, c);
+
+    if (content == null || content.equals(VASE_EMPTY)) {
+        System.out.println("Vasebreaker: Smashed empty vase at (" + c + ", " + r + ").");
+    } else if (content.equals(VASE_ZOMBIE)) {
+        Zombie z = model.entities.zombie.factory.ZombieFactory.createZombieAtColumn("NormalZombie", r, c);
+        if (z == null) {
+            z = new Zombie("NormalZombie", 200, 0.5, 20);
+            z.setX(c);
+            z.setY(r);
+        }
+        game.addZombie(z);
+        tile.setZombie(z);
+        System.out.println("Vasebreaker: A Zombie appeared from the vase at (" + c + ", " + r + ")!");
+    } else if (content.equals(VASE_GARGANTUAR)) {
+        Zombie z = model.entities.zombie.factory.ZombieFactory.createZombieAtColumn("Gargantuar", r, c);
+        if (z == null) {
+            z = new Zombie("Gargantuar", 1800, 0.3, 100);
+            z.setX(c);
+            z.setY(r);
+            // setBoss removed - use a different approach
+            // Gargantuars are identified by name
+        }
+        game.addZombie(z);
+        tile.setZombie(z);
+        System.out.println("Vasebreaker: A GARGANTUAR appeared from the special vase at (" + c + ", " + r + ")!");
+    } else if (content.equals(VASE_PLANT) || content.equals(VASE_SPECIAL_PLANT)) {
+        String plantType = PLANT_TYPES[new Random().nextInt(PLANT_TYPES.length)];
+        tile.setTemporarySeedPacket(plantType);
+        tile.setSeedPacketTimer(80);
+        System.out.println("Vasebreaker: Dropped " + plantType + " Seed Packet at (" + c + ", " + r + ")! Pick it up quickly!");
+    } else if (content.equals(VASE_SUN)) {
+        game.addSun(50);
+        System.out.println("Vasebreaker: Found 50 suns in the vase at (" + c + ", " + r + ")!");
+    }
+}
+
+    public void pickupPacket(int r, int c, Game game) {
+        Tile tile = game.getBoard().getTile(r, c);
+        String packet = tile.getTemporarySeedPacket();
+        if (packet == null) {
+            System.out.println("Vasebreaker: No seed packet at (" + c + ", " + r + ").");
             return;
         }
 
-        if (isVictoryConditionMet()) {
+        Plant p = PlantFactory.createPlant(packet);
+        if (p == null) {
+            System.out.println("Vasebreaker: Failed to create plant from seed packet.");
+            return;
+        }
+
+        tile.setTemporarySeedPacket(null);
+        tile.setSeedPacketTimer(0);
+        p.setX(c);
+        p.setY(r);
+        game.addPlant(p);
+        tile.setPlant(p);
+        System.out.println("Vasebreaker: Planted " + packet + " at (" + c + ", " + r + ")!");
+    }
+
+    public int getTotalVases() { return totalVases; }
+    public int getBrokenVasesCount() { return brokenVasesCount; }
+    public int getStageLevel() { return stageLevel; }
+    public void setStageLevel(int level) { this.stageLevel = Math.min(level, maxStageLevel); }
+    public boolean isSetup() { return isSetup; }
+    public void setSetup(boolean setup) { isSetup = setup; }
+    public void resetGrid() {
+        this.vaseContents = new String[5][9];
+        this.vaseBroken = new boolean[5][9];
+        this.totalVases = 0;
+        this.brokenVasesCount = 0;
+        this.isSetup = false;
+    }
+
+    public boolean isVictoryConditionMet() {
+        return brokenVasesCount >= totalVases && totalVases > 0;
+    }
+
+    public boolean isLossConditionMet(Game game) {
+        for (Zombie z : game.getActiveZombies()) {
+            if (z.getX() <= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void updateMiniGame(Game game) {
+        // Setup grid if not done
+        if (!isSetup) {
+            setupVaseGrid(game.getBoard().getRows(), game.getBoard().getColumns(), stageLevel);
+            // Remove any existing plants from board
+            for (Plant p : new ArrayList<>(game.getActivePlants())) {
+                game.getBoard().getTile(p.getY(), p.getX()).setPlant(null);
+                game.removePlant(p);
+            }
+            // Remove any existing zombies
+            for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
+                game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
+                game.removeZombie(z);
+            }
+        }
+
+        // Update seed packet timers
+        for (int r = 0; r < game.getBoard().getRows(); r++) {
+            for (int c = 0; c < game.getBoard().getColumns(); c++) {
+                Tile tile = game.getBoard().getTile(r, c);
+                if (tile.getTemporarySeedPacket() != null) {
+                    tile.setSeedPacketTimer(tile.getSeedPacketTimer() - 1);
+                    if (tile.getSeedPacketTimer() <= 0) {
+                        System.out.println("Vasebreaker: Seed Packet for " + tile.getTemporarySeedPacket() + " at (" + c + ", " + r + ") disappeared!");
+                        tile.setTemporarySeedPacket(null);
+                    }
+                }
+            }
+        }
+
+        // Check win condition
+        if (isVictoryConditionMet() && game.getActiveZombies().isEmpty()) {
+            // Complete level
+            completeLevel(stageLevel, brokenVasesCount);
             if (stageLevel < maxStageLevel) {
-                completeLevel(stageLevel, matchesFormed);
+                System.out.println("Vasebreaker: Level " + stageLevel + " complete! Moving to Level " + (stageLevel + 1));
                 stageLevel++;
                 isSetup = false;
-                game.getGameLogMessages().add("Beghoul: Stage " + (stageLevel - 1) + " complete! Moving to Stage " + stageLevel);
-                setupStage(game, stageLevel);
-                // Remove all zombies
+                // Reset board for next level
+                for (Plant p : new ArrayList<>(game.getActivePlants())) {
+                    game.getBoard().getTile(p.getY(), p.getX()).setPlant(null);
+                    game.removePlant(p);
+                }
                 for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
                     game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
                     game.removeZombie(z);
                 }
-                return;
+                setupVaseGrid(game.getBoard().getRows(), game.getBoard().getColumns(), stageLevel);
+                game.getGameLogMessages().add("Vasebreaker: New level started! Level " + stageLevel);
             } else {
                 game.setWon(true);
                 game.stop();
-                for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
-                    game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
-                }
-                game.getActiveZombies().clear();
+                System.out.println("Vasebreaker: All levels complete! Victory!");
                 game.getGameLogMessages().add("Dear humanz, zis is not done yet; we will come back to eat your brainz, humanz.");
-                return;
             }
+            return;
         }
 
-        // Check for no possible moves
-        if (!hasAnyPossibleMoves(game)) {
-            String[] types = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
-            fillGridRandomly(game, types);
-            game.getGameLogMessages().add("Beghoul: No possible moves! Grid reset.");
-            while (checkAndProcessMatches(game, false)) {}
+        // Check loss condition
+        if (isLossConditionMet(game)) {
+            game.setLost(true);
+            game.stop();
+            System.out.println("Vasebreaker: Game Over! A zombie reached the house!");
+            game.getGameLogMessages().add("The zombie ate your brain; LOSER!!!");
+            return;
         }
 
-        // Spawn zombies periodically
-        if (game.getTickCount() % 80 == 0) {
-            Zombie z = model.entities.zombie.factory.ZombieFactory.createZombie("NormalZombie");
-            if (z != null) {
-                int r = new Random().nextInt(5);
-                z.setX(8.0);
-                z.setY(r);
-                // Make zombie stronger in higher stages
-                if (stageLevel >= 2) {
-                    z.setHealth(z.getMaxHealth() + 100);
-                }
-                if (stageLevel >= 3) {
-                    z.setDamage(z.getDamage() + 10);
-                }
-                game.addZombie(z);
-                game.getBoard().getTile(r, 8).setZombie(z);
-            }
-        }
-    }
-
-    public void fillGridRandomly(Game game) {
-        String[] types = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
-        fillGridRandomly(game, types);
-    }
-
-    public boolean checkAndProcessMatches(Game game, boolean isCascade) {
-        boolean[][] toRemove = new boolean[5][9];
-        boolean foundMatch = false;
-
-        // Check horizontal matches
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 7; c++) {
-                Tile t1 = game.getBoard().getTile(r, c);
-                Tile t2 = game.getBoard().getTile(r, c + 1);
-                Tile t3 = game.getBoard().getTile(r, c + 2);
-                if (!hasCrater(r, c) && !hasCrater(r, c + 1) && !hasCrater(r, c + 2) &&
-                    t1.getPlant() != null && t2.getPlant() != null && t3.getPlant() != null) {
-                    String name1 = t1.getPlant().getName();
-                    String name2 = t2.getPlant().getName();
-                    String name3 = t3.getPlant().getName();
-                    if (name1.equalsIgnoreCase(name2) && name2.equalsIgnoreCase(name3)) {
-                        toRemove[r][c] = true;
-                        toRemove[r][c + 1] = true;
-                        toRemove[r][c + 2] = true;
-                        foundMatch = true;
+        // Spawn occasional zombies from remaining vases if too many are broken
+        if (brokenVasesCount > totalVases / 2 && game.getActiveZombies().size() < 3 && stageLevel > 1) {
+            Random rand = new Random();
+            if (rand.nextInt(100) < 10) {
+                // Find an unbroken vase with zombie content
+                for (int r = 0; r < vaseContents.length; r++) {
+                    for (int c = 0; c < vaseContents[0].length; c++) {
+                        if (!vaseBroken[r][c] && VASE_ZOMBIE.equals(vaseContents[r][c])) {
+                            breakVase(r, c, game);
+                            return;
+                        }
                     }
                 }
             }
         }
-
-        // Check vertical matches
-        for (int c = 0; c < 9; c++) {
-            for (int r = 0; r < 3; r++) {
-                Tile t1 = game.getBoard().getTile(r, c);
-                Tile t2 = game.getBoard().getTile(r + 1, c);
-                Tile t3 = game.getBoard().getTile(r + 2, c);
-                if (!hasCrater(r, c) && !hasCrater(r + 1, c) && !hasCrater(r + 2, c) &&
-                    t1.getPlant() != null && t2.getPlant() != null && t3.getPlant() != null) {
-                    String name1 = t1.getPlant().getName();
-                    String name2 = t2.getPlant().getName();
-                    String name3 = t3.getPlant().getName();
-                    if (name1.equalsIgnoreCase(name2) && name2.equalsIgnoreCase(name3)) {
-                        toRemove[r][c] = true;
-                        toRemove[r + 1][c] = true;
-                        toRemove[r + 2][c] = true;
-                        foundMatch = true;
-                    }
-                }
-            }
-        }
-
-        if (!foundMatch) return false;
-
-        int matchSizeCount = 0;
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 9; c++) {
-                if (toRemove[r][c]) {
-                    Tile tile = game.getBoard().getTile(r, c);
-                    if (tile.getPlant() != null) {
-                        game.removePlant(tile.getPlant());
-                        tile.setPlant(null);
-                        matchSizeCount++;
-                    }
-                }
-            }
-        }
-
-        addMatch();
-        int baseSunReward = 50;
-        if (matchSizeCount == 4) baseSunReward = 100;
-        else if (matchSizeCount >= 5) baseSunReward = 150;
-
-        if (isCascade) {
-            baseSunReward += 50;
-        }
-
-        game.addSun(baseSunReward);
-        game.getGameLogMessages().add("Beghoul: Match of " + matchSizeCount + "! +" + baseSunReward + " suns. (" + matchesFormed + "/" + targetMatches + ")");
-
-        applyGravityAndRefill(game);
-        return true;
-    }
-
-    private void applyGravityAndRefill(Game game) {
-        String[] types = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater"};
-        Random rand = new Random();
-
-        for (int c = 0; c < 9; c++) {
-            for (int r = 4; r >= 0; r--) {
-                if (!hasCrater(r, c) && game.getBoard().getTile(r, c).getPlant() == null) {
-                    int nextRow = r - 1;
-                    while (nextRow >= 0 && (hasCrater(nextRow, c) || game.getBoard().getTile(nextRow, c).getPlant() == null)) {
-                        nextRow--;
-                    }
-                    if (nextRow >= 0) {
-                        Plant p = game.getBoard().getTile(nextRow, c).getPlant();
-                        game.getBoard().getTile(nextRow, c).setPlant(null);
-                        p.setY(r);
-                        game.getBoard().getTile(r, c).setPlant(p);
-                        r++;
-                    }
-                }
-            }
-        }
-
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 9; c++) {
-                if (!hasCrater(r, c) && game.getBoard().getTile(r, c).getPlant() == null) {
-                    String type = types[rand.nextInt(types.length)];
-                    Plant p = PlantFactory.createPlant(type);
-                    if (p == null) {
-                        p = new Plant(rand.nextInt(1000) + 200, type, "BEGHOULD", null, 0, 300, 20, 2.0, 0, null, 0, null, 0);
-                    }
-                    p.setX(c);
-                    p.setY(r);
-                    game.addPlant(p);
-                    game.getBoard().getTile(r, c).setPlant(p);
-                }
-            }
-        }
-    }
-
-    public boolean hasAnyPossibleMoves(Game game) {
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 9; c++) {
-                if (c < 8 && !hasCrater(r, c) && !hasCrater(r, c + 1)) {
-                    if (testSwapCheck(game, r, c, r, c + 1)) return true;
-                }
-                if (r < 4 && !hasCrater(r, c) && !hasCrater(r + 1, c)) {
-                    if (testSwapCheck(game, r, c, r + 1, c)) return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean testSwapCheck(Game game, int r1, int c1, int r2, int c2) {
-        Tile t1 = game.getBoard().getTile(r1, c1);
-        Tile t2 = game.getBoard().getTile(r2, c2);
-        Plant p1 = t1.getPlant();
-        Plant p2 = t2.getPlant();
-        if (p1 == null || p2 == null) return false;
-
-        t1.setPlant(p2);
-        t2.setPlant(p1);
-
-        boolean hasMatch = false;
-        outerLoop:
-        for (int r = 0; r < 5; r++) {
-            for (int c = 0; c < 9; c++) {
-                if (c < 7) {
-                    Plant pA = game.getBoard().getTile(r, c).getPlant();
-                    Plant pB = game.getBoard().getTile(r, c + 1).getPlant();
-                    Plant pC = game.getBoard().getTile(r, c + 2).getPlant();
-                    if (pA != null && pB != null && pC != null && pA.getName().equalsIgnoreCase(pB.getName()) && pB.getName().equalsIgnoreCase(pC.getName())) {
-                        hasMatch = true;
-                        break outerLoop;
-                    }
-                }
-                if (r < 3) {
-                    Plant pA = game.getBoard().getTile(r, c).getPlant();
-                    Plant pB = game.getBoard().getTile(r + 1, c).getPlant();
-                    Plant pC = game.getBoard().getTile(r + 2, c).getPlant();
-                    if (pA != null && pB != null && pC != null && pA.getName().equalsIgnoreCase(pB.getName()) && pB.getName().equalsIgnoreCase(pC.getName())) {
-                        hasMatch = true;
-                        break outerLoop;
-                    }
-                }
-            }
-        }
-
-        t1.setPlant(p1);
-        t2.setPlant(p2);
-        return hasMatch;
     }
 }
