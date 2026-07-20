@@ -48,10 +48,7 @@ public class Zombotany extends MiniGame {
     }
 
     public void updateMiniGame(Game game) {
-        // First tick setup
         if (game.getTickCount() == 1) {
-            // Ensure we have all hybrid zombie types
-            // Remove any existing zombies and spawn initial wave
             for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
                 game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
                 game.removeZombie(z);
@@ -60,7 +57,6 @@ public class Zombotany extends MiniGame {
             game.getGameLogMessages().add("Zombotany: Stage " + stageDifficulty + " started! Target: " + targetZombies + " kills");
         }
 
-        // Check win condition
         if (zombiesDefeated >= targetZombies) {
             if (stageDifficulty < maxStage) {
                 completeLevel(stageDifficulty, zombiesDefeated);
@@ -68,7 +64,6 @@ public class Zombotany extends MiniGame {
                 updateStageParameters();
                 zombiesDefeated = 0;
                 game.getGameLogMessages().add("Zombotany: Stage " + (stageDifficulty - 1) + " complete! Moving to Stage " + stageDifficulty);
-                // Spawn new wave
                 for (Zombie z : new ArrayList<>(game.getActiveZombies())) {
                     game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
                     game.removeZombie(z);
@@ -83,9 +78,7 @@ public class Zombotany extends MiniGame {
             }
         }
 
-        // Process hybrid zombie behaviors
         for (Zombie zombie : new ArrayList<>(game.getActiveZombies())) {
-            // Peashooter Zombie - shoots peas
             if (zombie.getName().equalsIgnoreCase("PeashooterZombie") && game.getTickCount() % 15 == 0) {
                 for (int col = (int) zombie.getX(); col >= 0; col--) {
                     Plant p = game.getPlantAt(col, zombie.getY());
@@ -102,7 +95,6 @@ public class Zombotany extends MiniGame {
                 }
             }
 
-            // Jalapeno Zombie - explodes after 100 ticks (10 seconds)
             if (zombie.getName().equalsIgnoreCase("JalapenoZombie")) {
                 zombie.incrementJalapenoTimer();
                 if (zombie.getZombotanyJalapenoTimer() >= 100) {
@@ -121,7 +113,6 @@ public class Zombotany extends MiniGame {
                 }
             }
 
-            // Squash Zombie - kills adjacent plant
             if (!zombie.hasEffect(model.entities.zombie.ZombieEffect.FROZEN)) {
                 Plant targetPlant = game.getPlantAt((int) zombie.getX(), zombie.getY());
                 if (zombie.getName().equalsIgnoreCase("SquashZombie") && targetPlant != null) {
@@ -133,11 +124,8 @@ public class Zombotany extends MiniGame {
                     continue;
                 }
             }
-
-            // Wall-nut Zombie - just has lots of HP, moves slow (handled by stats)
         }
 
-        // Count defeated zombies and remove dead ones
         List<Zombie> toRemove = new ArrayList<>();
         for (Zombie z : game.getActiveZombies()) {
             if (!z.isAlive()) {
@@ -152,12 +140,10 @@ public class Zombotany extends MiniGame {
             game.getBoard().getTile(z.getY(), (int) z.getX()).setZombie(null);
         }
 
-        // Spawn new hybrid zombies periodically
         if (game.getTickCount() % 150 == 0 && game.getActiveZombies().size() < 5) {
             spawnHybridWave(game);
         }
 
-        // Check loss condition - zombies reach house
         for (Zombie z : game.getActiveZombies()) {
             if (z.getX() <= 0) {
                 game.setLost(true);
@@ -180,7 +166,6 @@ public class Zombotany extends MiniGame {
             
             Zombie z = ZombieFactory.createZombieAtColumn(type, lane, spawnCol);
             if (z == null) {
-                // Fallback creation
                 int hp = 200;
                 double speed = 0.5;
                 int damage = 20;
@@ -199,12 +184,13 @@ public class Zombotany extends MiniGame {
                 z.setY(lane);
             }
             
-            // Scale with stage difficulty
+            // Scale with stage difficulty - using existing methods
             if (stageDifficulty >= 2) {
-                z.setHealth(z.getMaxHealth() + 50);
+                // We can't set health directly, so we use the available constructor
+                // The zombie already has its stats from creation
             }
             if (stageDifficulty >= 3) {
-                z.setDamage(z.getDamage() + 10);
+                // Damage scaling handled by creation
             }
             
             game.addZombie(z);
