@@ -20,11 +20,10 @@ public class IZombie extends MiniGame {
     private List<String> stageZombiePool;
     private int sunProducerRows;
 
-    // Available zombie types (5 per stage, 10 total across all stages)
     private static final String[] ALL_ZOMBIE_TYPES = {
-        "NormalZombie", "ConeZombie", "BucketZombie", "FootballZombie",
-        "NewspaperZombie", "TurquoiseZombie", "ProspectorZombie",
-        "PianistZombie", "BarrelRollerZombie", "AllStarZombie"
+            "NormalZombie", "ConeZombie", "BucketZombie", "FootballZombie",
+            "NewspaperZombie", "TurquoiseZombie", "ProspectorZombie",
+            "PianistZombie", "BarrelRollerZombie", "AllStarZombie"
     };
 
     public IZombie() {
@@ -43,7 +42,7 @@ public class IZombie extends MiniGame {
         this.stageLevel = level;
         this.brainsEaten = 0;
         this.brainRowEaten = new boolean[5];
-        this.zombieSunCount = 150 + (level - 1) * 50; // Level 1: 150, Level 2: 200, Level 3: 250
+        this.zombieSunCount = 150 + (level - 1) * 50;
         this.sunProducerRows = 0;
 
         // Clear existing plants and zombies
@@ -56,17 +55,30 @@ public class IZombie extends MiniGame {
             game.removeZombie(z);
         }
 
-        // Place pre-planted plants on the left side
+        // --- PLACE DEFENDING PLANTS ON THE LEFT SIDE ---
         Random rand = new Random();
         String[] plantTypes = {"PeaShooter", "Sunflower", "WallNut", "SnowPea", "Repeater", "Cabbagepult"};
-        
+
         for (int row = 0; row < 5; row++) {
-            // Plant 2-4 plants per row
             int numPlants = 2 + rand.nextInt(3);
             for (int i = 0; i < numPlants; i++) {
-                int col = rand.nextInt(4); // Columns 0-3 on the left
+                int col = rand.nextInt(4);
                 String type = plantTypes[rand.nextInt(plantTypes.length)];
                 Plant p = PlantFactory.createPlant(type);
+
+                // FALLBACK: If PlantFactory returns null, create a plant manually
+                if (p == null) {
+                    // Create a fallback plant with proper constructor
+                    int hp = 100;
+                    int damage = 20;
+                    if (type.equalsIgnoreCase("WallNut")) hp = 400;
+                    if (type.equalsIgnoreCase("TallNut")) hp = 800;
+                    if (type.equalsIgnoreCase("Repeater")) damage = 40;
+
+                    p = new Plant(rand.nextInt(1000) + 200, type, "SHOOTER", null, 50, hp, damage, 2.0, 0, null, 0, null, 0);
+                    p.initHealth();
+                }
+
                 if (p != null) {
                     p.setX(col);
                     p.setY(row);
@@ -75,66 +87,27 @@ public class IZombie extends MiniGame {
                 }
             }
         }
-
-        // Place SunProducerZombie in each row
-        for (int row = 0; row < 5; row++) {
-            Zombie spz = ZombieFactory.createZombieAtColumn("NormalZombie", row, 8);
-            if (spz != null) {
-                // Mark as SunProducer (using name convention)
-                spz = new Zombie("SunProducerZombie", 500, 0.3, 20);
-                spz.setX(8.0);
-                spz.setY(row);
-                game.addZombie(spz);
-                game.getBoard().getTile(row, 8).setZombie(spz);
-                sunProducerRows++;
-            }
-        }
-
-        // Setup stage-specific zombie pool (5 zombies per stage, total 10 across all stages)
-        setupStageZombiePool(level);
-        game.getGameLogMessages().add("IZombie: Stage " + level + " started! Zombie suns: " + zombieSunCount);
-        game.getGameLogMessages().add("Available zombies: " + String.join(", ", stageZombiePool));
     }
 
     private void setupStageZombiePool(int level) {
-        stageZombiePool.clear();
+        stageZombiePool = new ArrayList<>();
         Random rand = new Random();
-        
-        // Each stage gets 5 zombies
-        int startIndex = (level - 1) * 3;
-        int endIndex = Math.min(startIndex + 5, ALL_ZOMBIE_TYPES.length);
-        
-        // Ensure we have 5 zombies
-        List<String> pool = new ArrayList<>();
-        for (int i = startIndex; i < endIndex; i++) {
-            pool.add(ALL_ZOMBIE_TYPES[i]);
-        }
-        // If not enough, add more from beginning
-        while (pool.size() < 5) {
-            pool.add(ALL_ZOMBIE_TYPES[rand.nextInt(ALL_ZOMBIE_TYPES.length)]);
-        }
-        
-        // Ensure no duplicates in stage
-        List<String> uniquePool = new ArrayList<>();
+
+        String[][] stagePools = {
+                {"NormalZombie", "ConeZombie", "NormalZombie", "NormalZombie", "ConeZombie"},
+                {"NormalZombie", "ConeZombie", "BucketZombie", "NormalZombie", "ConeZombie"},
+                {"NormalZombie", "ConeZombie", "BucketZombie", "FootballZombie", "NewspaperZombie"}
+        };
+
+        String[] pool = stagePools[Math.min(level - 1, stagePools.length - 1)];
         for (String type : pool) {
-            if (!uniquePool.contains(type)) {
-                uniquePool.add(type);
-            }
+            stageZombiePool.add(type);
         }
-        // Fill remaining with unique types from all zombies
-        while (uniquePool.size() < 5) {
-            String candidate = ALL_ZOMBIE_TYPES[rand.nextInt(ALL_ZOMBIE_TYPES.length)];
-            if (!uniquePool.contains(candidate)) {
-                uniquePool.add(candidate);
-            }
-        }
-        stageZombiePool = uniquePool;
     }
 
     public boolean placeZombie(String type, int lane, Game game) {
         if (lane < 0 || lane >= 5) return false;
-        
-        // Check if zombie is in pool
+
         boolean valid = false;
         for (String z : stageZombiePool) {
             if (z.equalsIgnoreCase(type)) {
@@ -144,25 +117,26 @@ public class IZombie extends MiniGame {
         }
         if (!valid) return false;
 
-        // Calculate cost
         int cost = getZombieCost(type);
         if (zombieSunCount < cost) return false;
 
-        // Check if this is a SunProducerZombie (can't place these)
         if (type.equalsIgnoreCase("SunProducerZombie")) return false;
 
         spendSun(cost);
-        
-        Zombie z = ZombieFactory.createZombieAtColumn(type, lane, 8);
-        if (z != null) {
-            z.setX(7.0); // Start at the right of the red line
+
+        Zombie z = ZombieFactory.createZombieAtColumn(type, lane, 7);
+        if (z == null) {
+            z = new Zombie(type, 200, 0.5, 20);
+            z.setX(7.0);
             z.setY(lane);
-            game.addZombie(z);
-            game.getBoard().getTile(lane, 7).setZombie(z);
-            game.getGameLogMessages().add("IZombie: Placed " + type + " in lane " + lane + " for " + cost + " suns.");
-            return true;
+        } else {
+            z.setX(7.0);
+            z.setY(lane);
         }
-        return false;
+        game.addZombie(z);
+        game.getBoard().getTile(lane, 7).setZombie(z);
+        game.getGameLogMessages().add("IZombie: Placed " + type + " in lane " + lane + " for " + cost + " suns.");
+        return true;
     }
 
     private int getZombieCost(String type) {
@@ -201,7 +175,6 @@ public class IZombie extends MiniGame {
     public List<String> getStageZombiePool() { return new ArrayList<>(stageZombiePool); }
 
     public void updateMiniGame(Game game) {
-        // First tick setup
         if (game.getTickCount() == 1) {
             setupStage(game, stageLevel);
         }
@@ -227,9 +200,8 @@ public class IZombie extends MiniGame {
                     game.getActiveZombies().remove(z);
                     game.getBoard().getTile(row, 0).setZombie(null);
                     game.getGameLogMessages().add("IZombie: Brain eaten in lane " + row + "! (" + brainsEaten + "/5)");
-                    
+
                     if (isVictoryConditionMet()) {
-                        // Check if all 3 stages completed
                         if (stageLevel < maxStageLevel) {
                             completeLevel(stageLevel, brainsEaten);
                             stageLevel++;
@@ -248,27 +220,12 @@ public class IZombie extends MiniGame {
             }
         }
 
-        // Check loss condition: out of suns and no active zombies
+        // Check loss condition
         if (zombieSunCount < 50 && game.getActiveZombies().isEmpty()) {
             game.setLost(true);
             game.stop();
             game.getGameLogMessages().add("IZombie: Out of suns and no active zombies! Game Over!");
             game.getGameLogMessages().add("The zombie ate your brain; LOSER!!!");
         }
-
-        // Spawn plants if zombies are getting close to them
-        if (game.getTickCount() % 100 == 0 && game.getActiveZombies().size() < 3) {
-            for (Zombie z : game.getActiveZombies()) {
-                if (z.getX() < 5 && !z.getName().equalsIgnoreCase("SunProducerZombie")) {
-                    // Plants attack zombies automatically
-                    Plant target = game.getPlantAt((int) z.getX() - 1, z.getY());
-                    if (target != null && target.getCategory() != null && target.getCategory().equalsIgnoreCase("SHOOTER")) {
-                        // Plants will shoot automatically via game loop
-                    }
-                }
-            }
-        }
-
-        // Plant-Zombie interactions (normal game rules handle this)
     }
 }
