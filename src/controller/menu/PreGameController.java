@@ -128,6 +128,7 @@ public class PreGameController {
             selectedPlants.add(exactPlantName);
             return "Plant " + exactPlantName + " added. (" + selectedPlants.size() + "/" + maxSlots + ")";
         }
+
         if (action.equalsIgnoreCase("menu enter minigame")) {
             String mgName = cmd.getArg("-m");
             if (mgName == null) {
@@ -146,6 +147,9 @@ public class PreGameController {
             } else if (mgName.equalsIgnoreCase("Beghoul")) {
                 activeChapterName = "Beghoul_MG";
                 return "Successfully selected minigame: Beghoul. Ready to start!";
+            } else if (mgName.equalsIgnoreCase("Zombotany")) {
+                activeChapterName = "Zombotany_MG";
+                return "Successfully selected minigame: Zombotany. Ready to start!";
             } else {
                 return "Error: Unknown minigame name.";
             }
