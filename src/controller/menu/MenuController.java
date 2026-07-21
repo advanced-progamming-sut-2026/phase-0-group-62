@@ -403,7 +403,15 @@ public class MenuController {
         if (action.equalsIgnoreCase("show-all-plants")) {
             StringBuilder sb = new StringBuilder("All game plants:\n");
             for (Plant plant : allPlants) {
-                sb.append("- ").append(plant.getName()).append("\n");
+                sb.append("- ").append(plant.getName());
+
+                String category = plant.getCategory() != null ? plant.getCategory().toString() : "N/A";
+                String tags = (plant.getTags() != null && !plant.getTags().isEmpty())
+                        ? String.join(", ", plant.getTags())
+                        : "None";
+
+                sb.append(" [Category: ").append(category)
+                        .append(" | Tags: ").append(tags).append("]\n");
             }
             return sb.toString().trim();
         }
@@ -439,6 +447,8 @@ public class MenuController {
             }
             StringBuilder sb = new StringBuilder();
             sb.append("Plant: ").append(targetPlant.getName()).append("\n");
+            sb.append("Category: ").append(targetPlant.getCategory()).append("\n");
+            sb.append("Tags: ").append(targetPlant.getTags() != null ? String.join(", ", targetPlant.getTags()) : "None").append("\n");
             sb.append("Sun Cost: ").append(targetPlant.getCost()).append("\n");
             sb.append("HP: ").append(targetPlant.getHealth()).append("\n");
             sb.append("Shoot Behavior: ").append(targetPlant.getShootBehavior());

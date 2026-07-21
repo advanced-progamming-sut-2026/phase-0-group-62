@@ -190,8 +190,36 @@ public class Board {
                 }
 
                 if (!graveInWay) {
+                    String zName = targetZombie.getName();
+
+                    if ((zName.equalsIgnoreCase("ZombieDarkJuggler") || zName.equalsIgnoreCase("JesterZombie")) && bullet.getType() != Bullet.BulletType.LOB) {
+                        bulletsToRemove.add(bullet);
+                        game.getGameLogMessages().add("Jester Zombie spun and deflected the projectile!");
+                        continue;
+                    }
+
+                    if ((zName.equalsIgnoreCase("ZombieLostCityJane") || zName.equalsIgnoreCase("UmbrellaZombie")) && bullet.getType() == Bullet.BulletType.LOB) {
+                        bulletsToRemove.add(bullet);
+                        game.getGameLogMessages().add("Parasol Zombie blocked the lobbed projectile with her umbrella!");
+                        continue;
+                    }
+
+                    if (zName.equalsIgnoreCase("ZombieBeachSnorkel") && targetZombie.isSubmerged() && bullet.getType() != Bullet.BulletType.LOB) {
+                        continue;
+                    }
+
+                    if (zName.equalsIgnoreCase("ZombieDarkImpDragon") && bullet.getType() == Bullet.BulletType.FIRE) {
+                        bulletsToRemove.add(bullet);
+                        game.getGameLogMessages().add("Imp Dragon is immune to fire damage!");
+                        continue;
+                    }
+
                     targetZombie.takeDamage(bullet.getDamage(), false);
                     bulletsToRemove.add(bullet);
+
+                    if (bullet.getType() == Bullet.BulletType.ICE) {
+                        targetZombie.applyChilled(3.0);
+                    }
 
                     if (!targetZombie.isAlive()) {
                         String deathMessage = "Zombie of type " + targetZombie.getName() + " is dead at (" + (int) Math.round(targetZombie.getX()) + ", " + targetZombie.getY() + ")";

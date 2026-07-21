@@ -23,7 +23,7 @@ public class Wave {
         this.zombieQueue = new ArrayList<>();
         this.zombiesSpawned = 0;
         this.spawnTimer = 0;
-        this.spawnInterval = 60; // Default spawn interval
+        this.spawnInterval = 60;
     }
 
     public Wave(int number, boolean isFinalWave) {
@@ -42,11 +42,10 @@ public class Wave {
 
     public void update() {
         if (!isActive || remainingZombies <= 0) return;
-        
+
         spawnTimer++;
         if (spawnTimer >= spawnInterval) {
             spawnTimer = 0;
-            // Spawn logic handled by Spawner
         }
     }
 

@@ -1,7 +1,7 @@
 [
   {
     "aliases": [
-      "ZombieDefault"
+      "NormalZombie"
     ],
     "objclass": "ZombiePropertySheet",
     "objdata": {
@@ -70,7 +70,7 @@
   },
   {
     "aliases": [
-      "ZombieArmor1"
+      "ConeZombie"
     ],
     "objclass": "ZombiePropertySheet",
     "objdata": {
@@ -142,7 +142,7 @@
   },
   {
     "aliases": [
-      "ZombieArmor2"
+      "BucketZombie"
     ],
     "objclass": "ZombiePropertySheet",
     "objdata": {
@@ -214,7 +214,7 @@
   },
   {
     "aliases": [
-      "ZombieArmor4"
+      "BrickZombie"
     ],
     "objclass": "ZombiePropertySheet",
     "objdata": {
@@ -286,7 +286,7 @@
   },
   {
     "aliases": [
-      "ZombieDarkArmor3"
+      "KnightZombie"
     ],
     "objclass": "ZombiePropertySheet",
     "objdata": {

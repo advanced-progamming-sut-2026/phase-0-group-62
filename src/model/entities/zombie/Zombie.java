@@ -6,6 +6,7 @@ public class Zombie {
     private int maxHealth;
     private double speed;
     private int damage;
+    private int waveCost;
     private double x;
     private int y;
     private int armorHealth;
@@ -22,15 +23,31 @@ public class Zombie {
     private int frozenIceHealth;
     private boolean immuneToFreeze;
 
+    private boolean isTransformedToSheep;
+    private boolean hasThrownImp;
+    private boolean isCharging;
+    private boolean isSubmerged;
+    private boolean isSpinning;
+    private int iceHitsTaken;
+    private int wizardTimer;
+    private int kingTimer;
+    private int raStealTimer;
+    private int tombraiserTimer;
+    private int fishermanTimer;
+    private int octopusTimer;
+    private int turquoiseLaserTimer;
+    private int pianoPlayTimer;
+
     private int zombotanyJalapenoTimer;
     private int izombieSunProductionTicks;
 
-    public Zombie(String name, int health, double speed, int damage) {
+    public Zombie(String name, int health, double speed, int damage, int waveCost) {
         this.name = name;
         this.health = health;
         this.maxHealth = health;
         this.speed = speed;
         this.damage = damage;
+        this.waveCost = waveCost;
         this.x = 8.0;
         this.y = 0;
         this.armorHealth = 0;
@@ -42,12 +59,36 @@ public class Zombie {
         this.frozenDuration = 0.0;
         this.stolenSuns = 0;
         this.isAngry = false;
-        this.isTorchLit = false;
-        this.dynamiteTimer = 0.0;
+        this.isTorchLit = true;
+        this.dynamiteTimer = 10.0;
         this.frozenIceHealth = 0;
         this.immuneToFreeze = false;
+
+        this.isTransformedToSheep = false;
+        this.hasThrownImp = false;
+        this.isCharging = false;
+        this.isSubmerged = false;
+        this.isSpinning = false;
+        this.iceHitsTaken = 0;
+        this.wizardTimer = 0;
+        this.kingTimer = 0;
+        this.raStealTimer = 0;
+        this.tombraiserTimer = 0;
+        this.fishermanTimer = 0;
+        this.octopusTimer = 0;
+        this.turquoiseLaserTimer = 0;
+        this.pianoPlayTimer = 0;
+
         this.zombotanyJalapenoTimer = 0;
         this.izombieSunProductionTicks = 0;
+    }
+
+    public Zombie(String name, int health, double speed, int damage) {
+        this(name, health, speed, damage, 100);
+    }
+
+    public int getWaveCost() {
+        return waveCost;
     }
 
     public void takeDamage(int amount, boolean bypassArmor) {
@@ -124,6 +165,8 @@ public class Zombie {
         double currentSpeed = getEffectiveSpeed();
         if (name.equalsIgnoreCase("SquashZombie")) {
             this.x -= (currentSpeed * 2.5);
+        } else if (isCharging) {
+            this.x -= (currentSpeed * 3.0);
         } else {
             this.x -= currentSpeed;
         }
@@ -137,7 +180,7 @@ public class Zombie {
     }
 
     public boolean isBoss() {
-        return this.name.equalsIgnoreCase("gargantuar");
+        return this.name.equalsIgnoreCase("gargantuar") || this.name.equalsIgnoreCase("ZombieGargantuar");
     }
 
     public String getType() {
@@ -166,7 +209,7 @@ public class Zombie {
     }
 
     public boolean isDodoRider() {
-        return name != null && (name.equalsIgnoreCase("dodo rider") || name.equalsIgnoreCase("dodo rider zombie"));
+        return name != null && (name.equalsIgnoreCase("dodo rider") || name.equalsIgnoreCase("ZombieIceAgeDodo"));
     }
 
     public String getName() { return name; }
@@ -202,6 +245,45 @@ public class Zombie {
     public void setFrozenIceHealth(int frozenIceHealth) { this.frozenIceHealth = frozenIceHealth; }
     public boolean isImmuneToFreeze() { return immuneToFreeze; }
     public void setImmuneToFreeze(boolean immuneToFreeze) { this.immuneToFreeze = immuneToFreeze; }
+
+    public boolean isTransformedToSheep() { return isTransformedToSheep; }
+    public void setTransformedToSheep(boolean transformedToSheep) { isTransformedToSheep = transformedToSheep; }
+    public boolean isHasThrownImp() { return hasThrownImp; }
+    public void setHasThrownImp(boolean hasThrownImp) { this.hasThrownImp = hasThrownImp; }
+    public boolean isCharging() { return isCharging; }
+    public void setCharging(boolean charging) { isCharging = charging; }
+    public boolean isSubmerged() { return isSubmerged; }
+    public void setSubmerged(boolean submerged) { isSubmerged = submerged; }
+    public boolean isSpinning() { return isSpinning; }
+    public void setSpinning(boolean spinning) { isSpinning = spinning; }
+    public int getIceHitsTaken() { return iceHitsTaken; }
+    public void incrementIceHitsTaken() { this.iceHitsTaken++; }
+    public void resetIceHitsTaken() { this.iceHitsTaken = 0; }
+
+    public int getWizardTimer() { return wizardTimer; }
+    public void incrementWizardTimer() { this.wizardTimer++; }
+    public void resetWizardTimer() { this.wizardTimer = 0; }
+    public int getKingTimer() { return kingTimer; }
+    public void incrementKingTimer() { this.kingTimer++; }
+    public void resetKingTimer() { this.kingTimer = 0; }
+    public int getRaStealTimer() { return raStealTimer; }
+    public void incrementRaStealTimer() { this.raStealTimer++; }
+    public void resetRaStealTimer() { this.raStealTimer = 0; }
+    public int getTombraiserTimer() { return tombraiserTimer; }
+    public void incrementTombraiserTimer() { this.tombraiserTimer++; }
+    public void resetTombraiserTimer() { this.tombraiserTimer = 0; }
+    public int getFishermanTimer() { return fishermanTimer; }
+    public void incrementFishermanTimer() { this.fishermanTimer++; }
+    public void resetFishermanTimer() { this.fishermanTimer = 0; }
+    public int getOctopusTimer() { return octopusTimer; }
+    public void incrementOctopusTimer() { this.octopusTimer++; }
+    public void resetOctopusTimer() { this.octopusTimer = 0; }
+    public int getTurquoiseLaserTimer() { return turquoiseLaserTimer; }
+    public void incrementTurquoiseLaserTimer() { this.turquoiseLaserTimer++; }
+    public void resetTurquoiseLaserTimer() { this.turquoiseLaserTimer = 0; }
+    public int getPianoPlayTimer() { return pianoPlayTimer; }
+    public void incrementPianoPlayTimer() { this.pianoPlayTimer++; }
+    public void resetPianoPlayTimer() { this.pianoPlayTimer = 0; }
 
     public int getZombotanyJalapenoTimer() { return zombotanyJalapenoTimer; }
     public void incrementJalapenoTimer() { this.zombotanyJalapenoTimer++; }

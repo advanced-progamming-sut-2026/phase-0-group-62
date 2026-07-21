@@ -27,13 +27,11 @@ public class ZombieLoader {
                     List<?> aliases = (List<?>) item.get("aliases");
                     if (aliases != null && !aliases.isEmpty()) {
                         String name = aliases.get(0).toString();
-                        if (name.equalsIgnoreCase("ZombieDefault")) {
-                            name = "NormalZombie";
-                        }
                         Map<String, Object> objdata = (Map<String, Object>) item.get("objdata");
                         int hp = 200;
                         int damage = 20;
                         double speed = 1.0;
+                        int waveCost = 100;
                         if (objdata != null) {
                             if (objdata.containsKey("Hitpoints")) {
                                 hp = ((Number) objdata.get("Hitpoints")).intValue();
@@ -44,8 +42,11 @@ public class ZombieLoader {
                             if (objdata.containsKey("Speed")) {
                                 speed = ((Number) objdata.get("Speed")).doubleValue();
                             }
+                            if (objdata.containsKey("WavePointCost")) {
+                                waveCost = ((Number) objdata.get("WavePointCost")).intValue();
+                            }
                         }
-                        zombies.add(new Zombie(name, hp, speed, damage));
+                        zombies.add(new Zombie(name, hp, speed, damage, waveCost));
                     }
                 }
             }

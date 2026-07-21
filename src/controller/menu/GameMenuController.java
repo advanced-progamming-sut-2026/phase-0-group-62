@@ -2,7 +2,7 @@ package controller.menu;
 
 import model.Game;
 import model.Tile;
-import model.enums.Difficulty;
+import model.Settings;
 import model.enums.SpecialLevelType;
 import model.entities.zombie.factory.ZombieFactory;
 import model.entities.zombie.Zombie;
@@ -13,6 +13,7 @@ import model.season.DarkAges;
 import model.season.FrostbiteCaves;
 import model.season.Season;
 import model.minigame.MiniGame;
+import util.FileManager;
 import util.ParsedCommand;
 import view.menu.MainMenu;
 import view.menu.MenuManager;
@@ -27,7 +28,11 @@ public class GameMenuController extends Controller {
     public GameMenuController(MenuController menuController) {
         super(menuController);
         this.menuController = menuController;
-        this.game = new Game(5, 9, 1, Difficulty.NORMAL);
+
+        Settings settings = FileManager.loadSettings();
+        int diffVal = settings != null ? settings.getDifficulty() : 3;
+
+        this.game = new Game(5, 9, 1, diffVal);
         String ch = PreGameController.activeChapterName;
 
         if (ch != null && ch.endsWith("_MG")) {
@@ -153,23 +158,25 @@ public class GameMenuController extends Controller {
                 sb.append(z.getName()).append(":\n");
                 sb.append("    position: ").append((int) Math.round(z.getX())).append(", ").append(z.getY()).append("\n");
                 sb.append("    health: ").append(z.getHealth()).append("\n");
-                sb.append("    armor:\n");
                 if (z.getArmorHealth() > 0) {
-                    if ("CONE".equalsIgnoreCase(z.getArmorType())) {
-                        sb.append("        cone: ").append(z.getArmorHealth()).append("\n");
-                    } else if ("BUCKET".equalsIgnoreCase(z.getArmorType())) {
-                        sb.append("        bucket: ").append(z.getArmorHealth()).append("\n");
-                    } else {
-                        sb.append("        shield: ").append(z.getArmorHealth()).append("\n");
-                    }
+                    sb.append("    armor: ").append(z.getArmorType()).append(" (").append(z.getArmorHealth()).append(")\n");
+                } else {
+                    sb.append("    armor: none\n");
                 }
-                sb.append("    effects:\n");
+                sb.append("    effects:");
+                boolean hasEffect = false;
                 if (z.getChilledDuration() > 0) {
-                    sb.append("        chilled: ").append(String.format("%.1fs", z.getChilledDuration() / 10.0)).append("\n");
+                    sb.append("\n        chilled: ").append(String.format("%.1fs", z.getChilledDuration() / 10.0));
+                    hasEffect = true;
                 }
                 if (z.getFrozenDuration() > 0 || z.getFrozenIceHealth() > 0) {
-                    sb.append("        frozen: ").append(String.format("%.1fs", z.getFrozenDuration() / 10.0)).append("\n");
+                    sb.append("\n        frozen: ").append(String.format("%.1fs", z.getFrozenDuration() / 10.0));
+                    hasEffect = true;
                 }
+                if (!hasEffect) {
+                    sb.append(" none");
+                }
+                sb.append("\n");
             }
             return sb.toString().trim();
         }
@@ -365,13 +372,12 @@ public class GameMenuController extends Controller {
                 int x = Integer.parseInt(coords[0].trim());
                 int y = Integer.parseInt(coords[1].trim());
 
-                // رفع باگ قطعی: جلوگیری از ثبت زامبی خارج از محدوده سطرهای بورد
                 if (y < 0 || y >= game.getBoard().getRows() || x < 0 || x >= game.getBoard().getColumns()) {
                     return "Error: Coordinates out of board bounds! Maximum row allowed is " + (game.getBoard().getRows() - 1);
                 }
 
                 String formattedType = type.equalsIgnoreCase("normalzombie") ? "NormalZombie" : type;
-                Zombie z = ZombieFactory.createZombieAtColumn(formattedType, y, x);
+                Zombie z = ZombieFactory.createZombieAtColumn(formattedType, y, x, game.getDifficultyLevel());
                 if (z != null) {
                     if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
                         List<String> observed = model.UserSession.getCurrentUser().getObservedZombies();

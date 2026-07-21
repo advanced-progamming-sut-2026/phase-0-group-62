@@ -403,18 +403,17 @@ public class GameController extends Controller {
         return "Picked up and successfully planted " + packet + " at tile (" + x + ", " + y + ").";
     }
 
+
     public String processZombieDeathDrops(Zombie zombie) {
         StringBuilder message = new StringBuilder();
         Random r = new Random();
 
         if (zombie.isGlowing()) {
-            if (r.nextInt(100) < 5) {
-                if (game.getPlantFoodCount() < 3) {
-                    game.addPlantFood();
-                    message.append("The glowing zombie dropeed a plant food; you have ")
-                            .append(game.getPlantFoodCount())
-                            .append(" plant foods now.\n");
-                }
+            if (game.getPlantFoodCount() < 3) {
+                game.addPlantFood();
+                message.append("The glowing zombie dropped a plant food; you have ")
+                        .append(game.getPlantFoodCount())
+                        .append(" plant foods now.\n");
             }
         }
 
@@ -422,16 +421,19 @@ public class GameController extends Controller {
             int dropType = r.nextInt(3);
             if (dropType == 0) {
                 game.addCoins(50);
-                message.append("A zombie dropeed a coin; you have ")
+                message.append("A zombie dropped a coin; you have ")
                         .append(game.getCoins())
                         .append(" coins now.");
             } else if (dropType == 1) {
                 game.addDiamonds(1);
-                message.append("A zombie dropeed a diamond; you have ")
+                message.append("A zombie dropped a diamond; you have ")
                         .append(game.getDiamonds())
                         .append(" diamonds now.");
             } else {
-                message.append("A zombie dropeed a pot; you have ")
+                if (game.getGreenhouse() != null) {
+                    game.getGreenhouse().addPot(new model.greenhouse.Pot(0, 0));
+                }
+                message.append("A zombie dropped a pot; you have ")
                         .append(game.getGreenhouse() != null ? game.getGreenhouse().getUnlockedPotCount() : 1)
                         .append(" pots now.");
             }

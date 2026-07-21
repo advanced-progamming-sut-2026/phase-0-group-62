@@ -4,7 +4,9 @@ import model.Board;
 import model.Tile;
 import model.entities.zombie.factory.ZombieFactory;
 import model.enums.Difficulty;
+import model.enums.ChapterZombieType;
 import model.season.Season;
+import controller.menu.PreGameController;
 
 import java.util.*;
 
@@ -13,7 +15,6 @@ public class Spawner {
     private int currentWave;
     private int totalWaves;
     private int remainingZombies;
-    private int zombiesPerWave;
     private Difficulty difficulty;
     private Map<Integer, List<String>> waveSchedule;
     private boolean finalWaveStarted;
@@ -22,9 +23,9 @@ public class Spawner {
     private int spawnInterval;
     private Season currentSeason;
 
-    public Spawner(Board board, int totalWaves, Difficulty difficulty) {
+    public Spawner(Board board, int levelNumber, Difficulty difficulty) {
         this.board = board;
-        this.totalWaves = totalWaves;
+        this.totalWaves = 3;
         this.difficulty = difficulty;
         this.currentWave = 0;
         this.remainingZombies = 0;
@@ -45,48 +46,79 @@ public class Spawner {
     }
 
     private int calculateWaveCost(int wave) {
-        int baseCost = 50;
-        int waveMultiplier = (int) Math.pow(1.25, wave - 1);
-        int cost = (int) (baseCost * waveMultiplier);
+        int baseCost = 300 * wave;
         switch (difficulty) {
-            case EASY: cost = (int) (cost * 0.7); break;
-            case HARD: cost = (int) (cost * 1.4); break;
+            case EASY: baseCost = (int) (baseCost * 0.8); break;
+            case HARD: baseCost = (int) (baseCost * 1.3); break;
             default: break;
         }
         if (wave == totalWaves) {
-            cost *= 2;
+            baseCost = (int) (baseCost * 1.5);
         }
-        return Math.max(cost, 10);
+        return Math.max(baseCost, 200);
     }
 
     private List<String> generateZombieTypes(int waveCost, int wave) {
         List<String> types = new ArrayList<>();
         int remainingCost = waveCost;
         List<String> availableZombies = getAvailableZombiesForWave(wave);
-        while (remainingCost > 0) {
-            String type = availableZombies.get(new Random().nextInt(availableZombies.size()));
-            int cost = ZombieFactory.getWaveCost(type);
+        Random rand = new Random();
+
+        while (remainingCost >= 100 && !availableZombies.isEmpty()) {
+            String chosenType = availableZombies.get(rand.nextInt(availableZombies.size()));
+            int cost = ZombieFactory.getWaveCost(chosenType);
+
             if (cost <= remainingCost) {
-                types.add(type);
+                types.add(chosenType);
                 remainingCost -= cost;
             } else {
-                if (remainingCost >= 10) {
-                    types.add("NormalZombie");
-                    remainingCost -= 10;
+                List<String> cheaperZombies = new ArrayList<>();
+                for (String z : availableZombies) {
+                    if (ZombieFactory.getWaveCost(z) <= remainingCost) {
+                        cheaperZombies.add(z);
+                    }
+                }
+                if (!cheaperZombies.isEmpty()) {
+                    String cheapType = cheaperZombies.get(rand.nextInt(cheaperZombies.size()));
+                    types.add(cheapType);
+                    remainingCost -= ZombieFactory.getWaveCost(cheapType);
                 } else {
                     break;
                 }
             }
         }
+
+        if (types.isEmpty()) {
+            types.add("ZombieDefault");
+        }
+
         return types;
     }
 
     private List<String> getAvailableZombiesForWave(int wave) {
         List<String> available = new ArrayList<>();
-        available.add("NormalZombie");
-        if (wave >= 2) available.add("ConeZombie");
-        if (wave >= 3) available.add("BucketZombie");
-        if (wave >= 4) available.add("FastZombie");
+        String chapterName = (currentSeason != null) ? currentSeason.getName() : PreGameController.activeChapterName;
+        List<String> chapterAllowed = ChapterZombieType.getAvailableZombiesForChapter(chapterName);
+
+        for (String zId : chapterAllowed) {
+            int cost = ZombieFactory.getWaveCost(zId);
+            if (wave == 1) {
+                if (cost <= 350) {
+                    available.add(zId);
+                }
+            } else if (wave == 2) {
+                if (cost <= 800) {
+                    available.add(zId);
+                }
+            } else {
+                available.add(zId);
+            }
+        }
+
+        if (available.isEmpty()) {
+            available.add("ZombieDefault");
+        }
+
         return available;
     }
 

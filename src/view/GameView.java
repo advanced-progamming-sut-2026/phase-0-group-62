@@ -132,6 +132,15 @@ public class GameView extends View {
             if (z.getFrozenIceHealth() > 0) {
                 return "#" + z.getFrozenIceHealth();
             }
+            if (z.getArmorHealth() > 0) {
+                String prefix = "A";
+                if ("CONE".equalsIgnoreCase(z.getArmorType())) prefix = "C";
+                else if ("BUCKET".equalsIgnoreCase(z.getArmorType())) prefix = "B";
+                else if ("BRICK".equalsIgnoreCase(z.getArmorType())) prefix = "R";
+                else if ("KNIGHT".equalsIgnoreCase(z.getArmorType())) prefix = "K";
+                else if ("NEWSPAPER".equalsIgnoreCase(z.getArmorType())) prefix = "N";
+                return prefix + z.getArmorHealth();
+            }
             return "Z" + z.getHealth();
         }
 
@@ -147,6 +156,8 @@ public class GameView extends View {
 
         Sun s = getSunAtTile(game, c, r);
         if (s != null) {
+            if (s.getValue() == 100) return "$S";
+            if (s.getValue() == 50) return "$R";
             return "*";
         }
 

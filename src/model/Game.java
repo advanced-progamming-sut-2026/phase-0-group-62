@@ -16,9 +16,6 @@ import model.minigame.IZombie;
 import model.minigame.Zombotany;
 import model.minigame.Beghoul;
 import model.season.Season;
-import model.quest.Quest;
-import model.User;
-import model.UserSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -27,6 +24,7 @@ public class Game {
     private Board board;
     private Level level;
     private Difficulty difficulty;
+    private int difficultyLevel;
     private int sunCount;
     private boolean running;
     private int coins;
@@ -55,13 +53,12 @@ public class Game {
     private boolean zombieWavesStarted;
     private MiniGame activeMiniGame;
     private List<String> gameLogMessages = new ArrayList<>();
-    private User currentUser;
-    private int plantsPlacedInLevel;
 
     public Game() {
         this.board = new Board(5, 9);
         this.level = new Level(1);
         this.difficulty = Difficulty.NORMAL;
+        this.difficultyLevel = 3;
         this.sunCount = 50;
         this.coins = 0;
         this.diamonds = 0;
@@ -89,181 +86,30 @@ public class Game {
         this.plantsLostCount = 0;
         this.zombieWavesStarted = true;
         this.activeMiniGame = null;
-        this.currentUser = UserSession.getCurrentUser();
-        this.plantsPlacedInLevel = 0;
     }
 
-    public Game(int rows, int columns, int levelNumber, Difficulty difficulty) {
+    public Game(int rows, int columns, int levelNumber, int difficultyLevel) {
         this();
         this.board = new Board(rows, columns);
         this.level = new Level(levelNumber);
-        this.difficulty = difficulty;
-        this.spawner = new Spawner(board, levelNumber * 2, difficulty);
+        this.difficultyLevel = difficultyLevel;
+        if (difficultyLevel <= 2) {
+            this.difficulty = Difficulty.EASY;
+        } else if (difficultyLevel >= 4) {
+            this.difficulty = Difficulty.HARD;
+        } else {
+            this.difficulty = Difficulty.NORMAL;
+        }
+        this.spawner = new Spawner(board, levelNumber * 2, this.difficulty);
         this.lawnMowers = new LawnMower[rows];
         for (int i = 0; i < rows; i++) {
             lawnMowers[i] = new LawnMower(i);
         }
     }
 
-    // --- Quest Notification Methods ---
-
-    private void notifyQuestZombieKill(Zombie zombie) {
-        if (currentUser == null) return;
-        currentUser.updateQuestProgress(Quest.QuestType.DAILY, 1);
-        currentUser.updateQuestProgress(Quest.QuestType.EPIC, 1);
-        currentUser.updateQuestProgress(Quest.QuestType.STORY, 1);
-        currentUser.updateQuestProgressByTitle("Chapter Hunter", 1);
-        currentUser.updateQuestProgressByTitle("Professional Plant Slayer", 1);
-        currentUser.updateQuestProgressByTitle("Only Cactus", 1);
-        currentUser.updateQuestProgressByTitle("Quick Reflexes", 1);
-        currentUser.updateQuestProgressByTitle("Family Slaughter", 1);
-        currentUser.updateQuestProgressByTitle("Almost Victorious", 1);
-        currentUser.updateQuestProgressByTitle("Lawn Mowing Time", 1);
-        currentUser.updateQuestProgressByExactTitle("Pro Demolitionist", 1);
+    public Game(int rows, int columns, int levelNumber, Difficulty difficulty) {
+        this(rows, columns, levelNumber, difficulty == Difficulty.EASY ? 1 : (difficulty == Difficulty.HARD ? 5 : 3));
     }
-
-    private void notifyQuestPlantPlaced(Plant plant) {
-        if (currentUser == null) return;
-        plantsPlacedInLevel++;
-        if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("EXPLOSIVE")) {
-            currentUser.updateQuestProgressByExactTitle("Pro Demolitionist", 1);
-        }
-        // Check for sun producer limits
-        if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SUN_PRODUCER")) {
-            int sunProducers = 0;
-            for (Plant p : activePlants) {
-                if (p.getCategory() != null && p.getCategory().equalsIgnoreCase("SUN_PRODUCER")) {
-                    sunProducers++;
-                }
-            }
-            if (sunProducers > 3) {
-                currentUser.updateQuestProgressByExactTitle("Cloudy Day", 1);
-            }
-        }
-    }
-
-    private void notifyQuestSunCollected(int amount) {
-        if (currentUser == null) return;
-        currentUser.updateQuestProgressByTitle("Daily Sun Collector", amount);
-    }
-
-    private void notifyQuestLevelWon() {
-        if (currentUser == null) return;
-        currentUser.updateQuestProgressByExactTitle("Economic Vegetarian", 1);
-        currentUser.updateQuestProgressByExactTitle("Master of Defense", 1);
-        currentUser.updateQuestProgressByExactTitle("Symmetry", 1);
-        currentUser.updateQuestProgressByExactTitle("OCD Obsession", 1);
-        currentUser.updateQuestProgressByExactTitle("Cloudy Day", 1);
-        currentUser.updateQuestProgressByExactTitle("Empty Column", 1);
-        currentUser.updateQuestProgressByExactTitle("Empty Row", 1);
-        currentUser.updateQuestProgressByExactTitle("Defenseless Cross", 1);
-        currentUser.updateQuestProgressByExactTitle("Flourish in Limitations", 1);
-        currentUser.updateQuestProgressByExactTitle("Night or Day", 1);
-        currentUser.updateQuestProgressByExactTitle("Win Streak", 1);
-    }
-
-    private void notifyQuestLawnMowerKill() {
-        if (currentUser == null) return;
-        currentUser.updateQuestProgressByTitle("Lawn Mowing Time", 1);
-        currentUser.updateQuestProgressByTitle("Almost Victorious", 1);
-    }
-
-    private void notifyQuestLevelLost() {
-    if (currentUser == null) return;
-    for (Quest q : currentUser.getUserQuests()) {
-        if (q.getTitle().equalsIgnoreCase("Win Streak") && q.getStatus() != Quest.QuestStatus.COMPLETED) {
-            q.resetProgress();
-        }
-    }
-}
-
-    private void checkSpecialQuestConditions() {
-        if (currentUser == null || !won) return;
-
-        // Check Economic Vegetarian (plants lost <= n)
-        Quest ecoQuest = findQuestByTitle("Economic Vegetarian");
-        if (ecoQuest != null && ecoQuest.getStatus() != Quest.QuestStatus.COMPLETED) {
-            if (plantsLostCount <= ecoQuest.getVariableN()) {
-                ecoQuest.updateProgress(1);
-            }
-        }
-
-        // Check Master of Defense (zero suns spent)
-        Quest defenseQuest = findQuestByTitle("Master of Defense");
-        if (defenseQuest != null && defenseQuest.getStatus() != Quest.QuestStatus.COMPLETED) {
-            if (sunCount == 0) {
-                defenseQuest.updateProgress(1);
-            }
-        }
-
-        // Check Cloudy Day (max 3 sun producers)
-        Quest cloudyQuest = findQuestByTitle("Cloudy Day");
-        if (cloudyQuest != null && cloudyQuest.getStatus() != Quest.QuestStatus.COMPLETED) {
-            int sunProducers = 0;
-            for (Plant p : activePlants) {
-                if (p.getCategory() != null && p.getCategory().equalsIgnoreCase("SUN_PRODUCER")) {
-                    sunProducers++;
-                }
-            }
-            if (sunProducers <= 3) {
-                cloudyQuest.updateProgress(1);
-            }
-        }
-
-        // Check Empty Column
-        Quest emptyColQuest = findQuestByTitle("Empty Column");
-        if (emptyColQuest != null && emptyColQuest.getStatus() != Quest.QuestStatus.COMPLETED) {
-            int col = emptyColQuest.getVariableN();
-            boolean empty = true;
-            for (int r = 0; r < board.getRows(); r++) {
-                if (getPlantAt(col, r) != null) {
-                    empty = false;
-                    break;
-                }
-            }
-            if (empty) emptyColQuest.updateProgress(1);
-        }
-
-        // Check Empty Row
-        Quest emptyRowQuest = findQuestByTitle("Empty Row");
-        if (emptyRowQuest != null && emptyRowQuest.getStatus() != Quest.QuestStatus.COMPLETED) {
-            int row = emptyRowQuest.getVariableN();
-            boolean empty = true;
-            for (int c = 0; c < board.getColumns(); c++) {
-                if (getPlantAt(c, row) != null) {
-                    empty = false;
-                    break;
-                }
-            }
-            if (empty) emptyRowQuest.updateProgress(1);
-        }
-
-        // Check Defenseless Cross
-        Quest crossQuest = findQuestByTitle("Defenseless Cross");
-        if (crossQuest != null && crossQuest.getStatus() != Quest.QuestStatus.COMPLETED) {
-            int n = crossQuest.getVariableN();
-            boolean empty = true;
-            for (int r = 0; r < board.getRows(); r++) {
-                if (getPlantAt(n, r) != null) { empty = false; break; }
-            }
-            for (int c = 0; c < board.getColumns(); c++) {
-                if (getPlantAt(c, n) != null) { empty = false; break; }
-            }
-            if (empty) crossQuest.updateProgress(1);
-        }
-    }
-
-    private Quest findQuestByTitle(String title) {
-        if (currentUser == null) return null;
-        for (Quest q : currentUser.getUserQuests()) {
-            if (q.getTitle().equalsIgnoreCase(title)) {
-                return q;
-            }
-        }
-        return null;
-    }
-
-    // --- Start and Stop ---
 
     public void start() {
         running = true;
@@ -276,8 +122,6 @@ public class Game {
     public void stop() {
         running = false;
     }
-
-    // --- Getters and Setters ---
 
     public Season getCurrentSeason() {
         return currentSeason;
@@ -355,15 +199,10 @@ public class Game {
 
     public void setLost(boolean lost) {
         this.lost = lost;
-        if (lost) notifyQuestLevelLost();
     }
 
     public void setWon(boolean won) {
         this.won = won;
-        if (won) {
-            checkSpecialQuestConditions();
-            notifyQuestLevelWon();
-        }
     }
 
     public void setSunCount(int sunCount) {
@@ -391,8 +230,6 @@ public class Game {
     public void incrementPlantsLost() {
         this.plantsLostCount++;
     }
-
-    // --- Game Loop ---
 
     public void tick() {
         if (!running || won || lost) return;
@@ -503,19 +340,38 @@ public class Game {
         }
 
         List<Zombie> zombiesToRemove = new ArrayList<>();
+        List<Zombie> zombiesToAdd = new ArrayList<>();
+
         for (Zombie zombie : new ArrayList<>(activeZombies)) {
             zombie.updateEffects();
             zombie.updateCooldown();
 
             if (!zombie.isAlive()) {
                 zombiesToRemove.add(zombie);
+                if (zombie.getStolenSuns() > 0) {
+                    int returnSun = zombie.getName().equalsIgnoreCase("ZombieCrystalSkull") ? zombie.getStolenSuns() / 2 : zombie.getStolenSuns();
+                    addSun(returnSun);
+                    gameLogMessages.add("Ra/Turquoise Zombie died! Returned " + returnSun + " stolen suns.");
+                }
+                if (zombie.getName().equalsIgnoreCase("ZombieWizard")) {
+                    for (Plant p : activePlants) {
+                        if (p.isTransformedToSheep()) {
+                            p.setTransformedToSheep(false);
+                        }
+                    }
+                }
                 String deathMessage = "Zombie of type " + zombie.getName() + " is dead at (" + (int) Math.round(zombie.getX()) + ", " + zombie.getY() + ")";
                 gameLogMessages.add(deathMessage);
+
+                processZombieDeathDrops(zombie);
+
                 scoreGame.onZombieKilled(zombie, this);
                 zombiesKilledInLevel++;
-                notifyQuestZombieKill(zombie);
                 continue;
             }
+
+
+            processSpecialZombieAbilities(zombie, zombiesToAdd);
 
             if (!zombie.hasEffect(ZombieEffect.FROZEN)) {
                 double zombieX = zombie.getX();
@@ -529,16 +385,37 @@ public class Game {
                 Plant targetPlant = getPlantAt(targetPlantX, zombieY);
 
                 if (targetPlant != null && !targetPlant.isBowlingBall() && zombieX - targetPlant.getX() <= 1.05) {
-                    if (tickCount % 10 == 0) {
-                        targetPlant.takeDamage(zombie.getDamage());
-                        scoreGame.onDamageTaken(zombie.getDamage());
+                    if (zombie.getName().equalsIgnoreCase("ZombieExplorer") && zombie.isTorchLit()) {
+                        activePlants.remove(targetPlant);
+                        board.getTile(targetPlant.getY(), targetPlant.getX()).setPlant(null);
+                        plantsLostCount++;
+                        gameLogMessages.add("Explorer Zombie burned plant " + targetPlant.getName() + " at (" + targetPlant.getX() + ", " + targetPlant.getY() + ")!");
+                    } else if (zombie.getName().equalsIgnoreCase("ZombieModernAllStar") && zombie.isCharging()) {
+                        targetPlant.takeDamage(1500);
+                        zombie.setCharging(false);
+                        gameLogMessages.add("All-Star Zombie tackled plant " + targetPlant.getName() + "!");
                         if (!targetPlant.isAlive()) {
                             activePlants.remove(targetPlant);
                             board.getTile(targetPlant.getY(), targetPlant.getX()).setPlant(null);
                             plantsLostCount++;
-                            gameLogMessages.add("Plant " + targetPlant.getName() + " at (" + targetPlant.getX() + ", " + targetPlant.getY() + ") is destroyed.");
-                            if (activeMiniGame instanceof Beghoul) {
-                                ((Beghoul) activeMiniGame).createCrater(targetPlant.getY(), targetPlant.getX());
+                        }
+                    } else if (zombie.getName().equalsIgnoreCase("ZombieWizard")) {
+                        if (!targetPlant.isTransformedToSheep()) {
+                            targetPlant.setTransformedToSheep(true);
+                            gameLogMessages.add("Wizard Zombie transformed plant at (" + targetPlant.getX() + ", " + targetPlant.getY() + ") into a sheep!");
+                        }
+                    } else {
+                        if (tickCount % 10 == 0) {
+                            targetPlant.takeDamage(zombie.getDamage());
+                            scoreGame.onDamageTaken(zombie.getDamage());
+                            if (!targetPlant.isAlive()) {
+                                activePlants.remove(targetPlant);
+                                board.getTile(targetPlant.getY(), targetPlant.getX()).setPlant(null);
+                                plantsLostCount++;
+                                gameLogMessages.add("Plant " + targetPlant.getName() + " at (" + targetPlant.getX() + ", " + targetPlant.getY() + ") is destroyed.");
+                                if (activeMiniGame instanceof Beghoul) {
+                                    ((Beghoul) activeMiniGame).createCrater(targetPlant.getY(), targetPlant.getX());
+                                }
                             }
                         }
                     }
@@ -594,8 +471,6 @@ public class Game {
                             for (Zombie killed : toKill) {
                                 scoreGame.onZombieKilled(killed, this);
                                 zombiesKilledInLevel++;
-                                notifyQuestZombieKill(killed);
-                                notifyQuestLawnMowerKill();
                                 gameLogMessages.add("Zombie of type " + killed.getName() + " is dead at (" + (int)Math.round(killed.getX()) + ", " + killed.getY() + ")");
                             }
                         }
@@ -612,6 +487,7 @@ public class Game {
             }
         }
         activeZombies.removeAll(zombiesToRemove);
+        activeZombies.addAll(zombiesToAdd);
 
         if (lost || won || !running) return;
 
@@ -628,7 +504,7 @@ public class Game {
                         newlySpawned.setX(modifiedCol);
                     }
                     activeZombies.add(newlySpawned);
-                    int cost = model.entities.zombie.factory.ZombieFactory.getWaveCost(newlySpawned.getName());
+                    int cost = newlySpawned.getWaveCost();
                     gameLogMessages.add("Zombie " + newlySpawned.getName() + " spawned at wave " + spawner.getCurrentWave() + " in lane " + newlySpawned.getY() + " which costed " + cost + ".");
                 }
             }
@@ -670,12 +546,16 @@ public class Game {
         }
 
         for (Plant plant : activePlants) {
-            if (plant.isFrozen() || plant.isBowlingBall()) continue;
+            if (plant.isFrozen() || plant.isBowlingBall() || plant.isTransformedToSheep()) continue;
             if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SHOOTER")) {
                 if (plant.shouldShoot() && (hasZombieInRow(plant.getY()) || board.hasGraveInRow(plant.getY()))) {
                     Bullet.BulletType bType = Bullet.BulletType.NORMAL;
                     if (plant.getName().toLowerCase().contains("pult") || plant.getName().toLowerCase().contains("melon")) {
                         bType = Bullet.BulletType.LOB;
+                    } else if (plant.getName().toLowerCase().contains("snow") || plant.getName().toLowerCase().contains("ice")) {
+                        bType = Bullet.BulletType.ICE;
+                    } else if (plant.getName().toLowerCase().contains("fire")) {
+                        bType = Bullet.BulletType.FIRE;
                     }
                     bullets.add(new Bullet(20, plant.getY(), plant.getX() + 1, bType, false, false, 0));
                 }
@@ -736,6 +616,192 @@ public class Game {
             }
         }
     }
+
+    private void processZombieDeathDrops(Zombie zombie) {
+        Random r = new Random();
+
+        if (zombie.isGlowing()) {
+            if (getPlantFoodCount() < 3) {
+                addPlantFood();
+                gameLogMessages.add("The glowing zombie dropped a plant food; you have " + getPlantFoodCount() + " plant foods now.");
+            }
+        }
+
+        if (r.nextInt(100) < 10) {
+            int dropType = r.nextInt(3);
+            if (dropType == 0) {
+                addCoins(50);
+                gameLogMessages.add("A zombie dropped a coin; you have " + getCoins() + " coins now.");
+            } else if (dropType == 1) {
+                addDiamonds(1);
+                gameLogMessages.add("A zombie dropped a diamond; you have " + getDiamonds() + " diamonds now.");
+            } else {
+                if (getGreenhouse() != null) {
+                    getGreenhouse().addPot(new model.greenhouse.Pot(0, 0));
+                }
+                int potCount = getGreenhouse() != null ? getGreenhouse().getUnlockedPotCount() : 1;
+                gameLogMessages.add("A zombie dropped a pot; you have " + potCount + " pots now.");
+            }
+        }
+    }
+
+    private void processSpecialZombieAbilities(Zombie zombie, List<Zombie> zombiesToAdd) {
+        String name = zombie.getName();
+
+        if (name.equalsIgnoreCase("ZombieGargantuar") && !zombie.isHasThrownImp()) {
+            if (zombie.getHealth() <= zombie.getMaxHealth() / 2) {
+                zombie.setHasThrownImp(true);
+                Zombie imp = model.entities.zombie.factory.ZombieFactory.createZombie("ZombieImp", difficultyLevel);
+                if (imp != null) {
+                    imp.setY(zombie.getY());
+                    imp.setX(2.0);
+                    zombiesToAdd.add(imp);
+                    gameLogMessages.add("Gargantuar threw an Imp to column 2!");
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieRa")) {
+            zombie.incrementRaStealTimer();
+            if (zombie.getRaStealTimer() >= 20) {
+                zombie.resetRaStealTimer();
+                if (!suns.isEmpty()) {
+                    Sun targetSun = suns.remove(0);
+                    zombie.setStolenSuns(zombie.getStolenSuns() + targetSun.getValue());
+                    gameLogMessages.add("Ra Zombie absorbed a sun from position (" + targetSun.getColumn() + ", " + targetSun.getRow() + ")!");
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieTombRaiser")) {
+            zombie.incrementTombraiserTimer();
+            if (zombie.getTombraiserTimer() >= 100) {
+                zombie.resetTombraiserTimer();
+                Random r = new Random();
+                int rx = r.nextInt(board.getColumns());
+                int ry = r.nextInt(board.getRows());
+                Tile tile = board.getTile(ry, rx);
+                if (tile != null && tile.isEmpty() && tile.getType() == TileType.GRASS) {
+                    board.setupGrave(ry, rx, 700, 0, false);
+                    gameLogMessages.add("Tombraiser Zombie created a grave at (" + rx + ", " + ry + ")");
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieIceAgeHunter")) {
+            if (tickCount % 30 == 0) {
+                Plant p = getFirstPlantInRow(zombie.getY());
+                if (p != null) {
+                    p.setFreezeLevel(p.getFreezeLevel() + 1);
+                    gameLogMessages.add("Hunter Zombie threw a snowball at plant " + p.getName() + "!");
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieBeachFisherman")) {
+            zombie.incrementFishermanTimer();
+            if (zombie.getFishermanTimer() >= 25) {
+                zombie.resetFishermanTimer();
+                Plant target = getFirstPlantInRow(zombie.getY());
+                if (target != null) {
+                    if (target.getX() + 1 == (int) Math.round(zombie.getX())) {
+                        activePlants.remove(target);
+                        board.getTile(target.getY(), target.getX()).setPlant(null);
+                        gameLogMessages.add("Fisherman Zombie hooked and destroyed plant " + target.getName() + "!");
+                    } else if (target.getX() + 1 < board.getColumns()) {
+                        board.getTile(target.getY(), target.getX()).setPlant(null);
+                        target.setX(target.getX() + 1);
+                        board.getTile(target.getY(), target.getX()).setPlant(target);
+                        gameLogMessages.add("Fisherman Zombie pulled plant " + target.getName() + " to column " + target.getX());
+                    }
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieBeachOctopus")) {
+            zombie.incrementOctopusTimer();
+            if (zombie.getOctopusTimer() >= 40) {
+                zombie.resetOctopusTimer();
+                Plant p = getFirstPlantInRow(zombie.getY());
+                if (p != null && !p.isFrozen()) {
+                    p.setFreezeLevel(3);
+                    gameLogMessages.add("Octopus Zombie threw an octopus on plant " + p.getName() + "!");
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieDarkKing")) {
+            zombie.incrementKingTimer();
+            if (zombie.getKingTimer() >= 25) {
+                zombie.resetKingTimer();
+                for (Zombie neighbor : activeZombies) {
+                    if (Math.abs(neighbor.getY() - zombie.getY()) <= 1 && Math.abs((int) neighbor.getX() - (int) zombie.getX()) <= 2) {
+                        if (neighbor.getName().equalsIgnoreCase("ZombieDefault") || neighbor.getName().equalsIgnoreCase("NormalZombie")) {
+                            neighbor.setArmorHealth(1600);
+                            neighbor.setArmorType("KNIGHT");
+                            gameLogMessages.add("King Zombie knighted a zombie at lane " + neighbor.getY() + "!");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieCrystalSkull")) {
+            zombie.incrementTurquoiseLaserTimer();
+            if (zombie.getTurquoiseLaserTimer() >= 50) {
+                zombie.resetTurquoiseLaserTimer();
+                int startCol = (int) Math.floor(zombie.getX());
+                for (int c = startCol; c >= Math.max(0, startCol - 4); c--) {
+                    Plant p = getPlantAt(c, zombie.getY());
+                    if (p != null) {
+                        activePlants.remove(p);
+                        board.getTile(p.getY(), p.getX()).setPlant(null);
+                        gameLogMessages.add("Turquoise Zombie fired laser and destroyed plant " + p.getName() + " at column " + c);
+                    }
+                }
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombieProspector") && zombie.getDynamiteTimer() > 0) {
+            if (zombie.getDynamiteTimer() <= 1.0) {
+                zombie.setDynamiteTimer(0.0);
+                zombie.setX(0.0);
+                zombie.setAngry(true);
+                gameLogMessages.add("Prospector Zombie's dynamite exploded! Flew to end of row.");
+            }
+        }
+
+        if (name.equalsIgnoreCase("ZombiePiano")) {
+            zombie.incrementPianoPlayTimer();
+            if (zombie.getPianoPlayTimer() >= 30) {
+                zombie.resetPianoPlayTimer();
+                Random r = new Random();
+                for (Zombie z : activeZombies) {
+                    if (!z.isBoss() && r.nextBoolean()) {
+                        int newY = z.getY() + (r.nextBoolean() ? 1 : -1);
+                        if (newY >= 0 && newY < board.getRows()) {
+                            z.setY(newY);
+                        }
+                    }
+                }
+                gameLogMessages.add("Piano Zombie played music! Zombies swapped lanes!");
+            }
+        }
+    }
+
+    private Plant getFirstPlantInRow(int row) {
+        Plant closest = null;
+        for (Plant p : activePlants) {
+            if (p.getY() == row) {
+                if (closest == null || p.getX() > closest.getX()) {
+                    closest = p;
+                }
+            }
+        }
+        return closest;
+    }
+
     public List<String> getRawLogMessagesDirectly() {
         List<String> currentMessages = new ArrayList<>(gameLogMessages);
         gameLogMessages.clear();
@@ -752,7 +818,8 @@ public class Game {
         }
         double t = tickCount / 10.0;
         double formulaInterval = Math.max(6 + 0.05 * t, 12);
-        int sunDropInterval = (int) (formulaInterval * 10);
+        double scaleIncrease = difficultyLevel / 3.0;
+        int sunDropInterval = (int) (formulaInterval * 10 * scaleIncrease);
 
         if (tickCount - lastSunDropTick >= sunDropInterval) {
             lastSunDropTick = tickCount;
@@ -774,8 +841,6 @@ public class Game {
             gameLogMessages.add("Sun reached the ground at position (" + x + ", " + y + ")");
         }
     }
-
-    // --- Helper Methods ---
 
     public boolean hasZombieInRow(int row) {
         for (Zombie z : activeZombies) {
@@ -803,82 +868,34 @@ public class Game {
         return null;
     }
 
-    // --- Core Game Methods ---
-
     public boolean isWon() { return won; }
     public boolean isLost() { return lost; }
     public LawnMower[] getLawnMowers() { return lawnMowers; }
-    
     public boolean spendSun(int amount) {
         if (sunCount < amount) return false;
         sunCount -= amount;
         return true;
     }
-    
-    public void addSun(int amount) { 
-        sunCount += amount; 
-        sunsProducedInLevel += amount; 
-        scoreGame.onSunCollected(amount);
-        notifyQuestSunCollected(amount);
-    }
-    
-    public boolean spendCoins(int amount) { 
-        if (coins < amount) return false; 
-        coins -= amount; 
-        return true; 
-    }
-    
-    public void addCoins(int amount) { 
-        coins += amount; 
-        scoreGame.onCoinEarned(amount); 
-    }
-    
-    public boolean spendDiamonds(int amount) { 
-        if (diamonds < amount) return false; 
-        diamonds -= amount; 
-        return true; 
-    }
-    
-    public void addDiamonds(int amount) { 
-        diamonds += amount; 
-        scoreGame.onDiamondEarned(amount); 
-    }
-    
+    public void addSun(int amount) { sunCount += amount; sunsProducedInLevel += amount; scoreGame.onSunCollected(amount); }
+    public boolean spendCoins(int amount) { if (coins < amount) return false; coins -= amount; return true; }
+    public void addCoins(int amount) { coins += amount; scoreGame.onCoinEarned(amount); }
+    public boolean spendDiamonds(int amount) { if (diamonds < amount) return false; diamonds -= amount; return true; }
+    public void addDiamonds(int amount) { diamonds += amount; scoreGame.onDiamondEarned(amount); }
     public void addPlantFood() { plantFoodCount++; }
-    public boolean usePlantFood() { 
-        if (plantFoodCount <= 0) return false; 
-        plantFoodCount--; 
-        return true; 
-    }
-    
+    public boolean usePlantFood() { if (plantFoodCount <= 0) return false; plantFoodCount--; return true; }
     public void addBullet(Bullet bullet) { bullets.add(bullet); }
     public void addSun(Sun sun) { suns.add(sun); }
-    
-    public void addZombie(Zombie zombie) { 
-        activeZombies.add(zombie); 
-    }
-    
-    public void addPlant(Plant plant) { 
-        activePlants.add(plant); 
-        scoreGame.onPlantPlaced(plant);
-        notifyQuestPlantPlaced(plant);
-    }
-    
-    public void removePlant(Plant plant) { 
-        activePlants.remove(plant); 
-    }
-    
-    public void removeZombie(Zombie zombie) { 
-        activeZombies.remove(zombie); 
-        scoreGame.onZombieKilled(zombie, this);
-        notifyQuestZombieKill(zombie);
-    }
-    
+    public void addZombie(Zombie zombie) { activeZombies.add(zombie); }
+    public void addPlant(Plant plant) { activePlants.add(plant); scoreGame.onPlantPlaced(plant); }
+    public void removePlant(Plant plant) { activePlants.remove(plant); }
+    public void removeZombie(Zombie zombie) { activeZombies.remove(zombie); scoreGame.onZombieKilled(zombie, this); }
     public boolean isRunning() { return running; }
     public Board getBoard() { return board; }
     public Level getLevel() { return level; }
     public Difficulty getDifficulty() { return difficulty; }
     public void setDifficulty(Difficulty difficulty) { this.difficulty = difficulty; }
+    public int getDifficultyLevel() { return difficultyLevel; }
+    public void setDifficultyLevel(int difficultyLevel) { this.difficultyLevel = difficultyLevel; }
     public int getSunCount() { return sunCount; }
     public int getCoins() { return coins; }
     public int getDiamonds() { return diamonds; }

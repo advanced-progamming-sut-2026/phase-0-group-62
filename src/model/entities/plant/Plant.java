@@ -24,6 +24,7 @@ public class Plant {
     private int y;
     private int freezeLevel;
     private int iceHealth;
+    private boolean isTransformedToSheep;
 
     private int dx;
     private int dy;
@@ -51,6 +52,7 @@ public class Plant {
         this.hasSunToCollect = false;
         this.freezeLevel = 0;
         this.iceHealth = 0;
+        this.isTransformedToSheep = false;
         this.dx = 0;
         this.dy = 0;
         this.hitCount = 0;
@@ -138,6 +140,9 @@ public class Plant {
     public void setX(int x) { this.x = x; }
     public int getY() { return y; }
     public void setY(int y) { this.y = y; }
+
+    public boolean isTransformedToSheep() { return isTransformedToSheep; }
+    public void setTransformedToSheep(boolean transformedToSheep) { isTransformedToSheep = transformedToSheep; }
 
     public int getFreezeLevel() {
         return freezeLevel;
