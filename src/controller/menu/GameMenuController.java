@@ -12,6 +12,7 @@ import model.season.BigWaveBeach;
 import model.season.DarkAges;
 import model.season.FrostbiteCaves;
 import model.season.Season;
+import model.minigame.MiniGame;
 import util.ParsedCommand;
 import view.menu.MainMenu;
 import view.menu.MenuManager;
@@ -30,14 +31,22 @@ public class GameMenuController extends Controller {
         String ch = PreGameController.activeChapterName;
 
         if (ch != null && ch.endsWith("_MG")) {
+            MiniGame mg = null;
             if (ch.startsWith("Vasebreaker")) {
-                this.game.setActiveMiniGame(new model.minigame.Vasebreaker());
+                mg = new model.minigame.Vasebreaker();
+                this.game.setActiveMiniGame(mg);
             } else if (ch.startsWith("WallnutBowling")) {
-                this.game.setActiveMiniGame(new model.minigame.WallnutBowling());
+                mg = new model.minigame.WallnutBowling();
+                this.game.setActiveMiniGame(mg);
             } else if (ch.startsWith("IZombie")) {
-                this.game.setActiveMiniGame(new model.minigame.IZombie());
+                mg = new model.minigame.IZombie();
+                this.game.setActiveMiniGame(mg);
             } else if (ch.startsWith("Beghoul")) {
-                this.game.setActiveMiniGame(new model.minigame.Beghoul());
+                mg = new model.minigame.Beghoul();
+                this.game.setActiveMiniGame(mg);
+            } else if (ch.startsWith("Zombotany")) {
+                mg = new model.minigame.Zombotany();
+                this.game.setActiveMiniGame(mg);
             }
         } else if (ch != null) {
             Season season = null;
@@ -67,10 +76,22 @@ public class GameMenuController extends Controller {
                 this.game.setCurrentSeason(season);
             }
         }
-        this.game.start();
 
+        this.game.start();
         this.game.setupSpecialLevelFeatures();
         this.game.setSunCount(this.game.getLevel().getInitialSunAmount());
+
+        // --- FORCE SETUP FOR MINIGAMES AFTER START ---
+        if (this.game.getActiveMiniGame() instanceof model.minigame.IZombie) {
+            ((model.minigame.IZombie) this.game.getActiveMiniGame()).setupStage(this.game, 1);
+        }
+        if (this.game.getActiveMiniGame() instanceof model.minigame.Beghoul) {
+            ((model.minigame.Beghoul) this.game.getActiveMiniGame()).setupStage(this.game, 1);
+        }
+        if (this.game.getActiveMiniGame() instanceof model.minigame.Vasebreaker) {
+            ((model.minigame.Vasebreaker) this.game.getActiveMiniGame()).setupVaseGrid(5, 9, 1);
+        }
+        // WallnutBowling and Zombotany don't need forced setup - they work differently
 
         this.gameController = new GameController(menuController);
         this.gameController.setGame(this.game);
@@ -198,6 +219,59 @@ public class GameMenuController extends Controller {
                 return "Invalid format! Use feed plant -l (<x>, <y>)";
             }
         }
+        if (action.equalsIgnoreCase("upgrade plants")) {
+            String fromType = cmd.getArg("-f");
+            String toType = cmd.getArg("-t");
+            if (fromType == null || toType == null) {
+                return "Usage: upgrade plants -f <from_type> -t <to_type>";
+            }
+            return gameController.upgradePlants(fromType, toType);
+        }
+        if (action.equalsIgnoreCase("smash vase")) {
+            String loc = cmd.getArg("-l");
+            if (loc == null) {
+                return "Usage: smash vase -l (<x>, <y>)";
+            }
+            try {
+                loc = loc.replace("(", "").replace(")", "");
+                String[] coords = loc.split(",");
+                int x = Integer.parseInt(coords[0].trim());
+                int y = Integer.parseInt(coords[1].trim());
+                return gameController.smashVase(x, y);
+            } catch (Exception e) {
+                return "Invalid format! Use: smash vase -l (<x>, <y>)";
+            }
+        }
+
+        if (action.equalsIgnoreCase("place zombie")) {
+            String type = cmd.getArg("-t");
+            String laneStr = cmd.getArg("-l");
+            if (type == null || laneStr == null) {
+                return "Usage: place zombie -t <type> -l <lane>";
+            }
+            try {
+                int lane = Integer.parseInt(laneStr.trim());
+                return gameController.placeZombie(type, lane);
+            } catch (Exception e) {
+                return "Invalid format! Use: place zombie -t <type> -l <lane>";
+            }
+        }
+
+        if (action.equalsIgnoreCase("pickup packet")) {
+            String loc = cmd.getArg("-l");
+            if (loc == null) {
+                return "Usage: pickup packet -l (<x>, <y>)";
+            }
+            try {
+                loc = loc.replace("(", "").replace(")", "");
+                String[] coords = loc.split(",");
+                int x = Integer.parseInt(coords[0].trim());
+                int y = Integer.parseInt(coords[1].trim());
+                return gameController.pickupPacket(x, y);
+            } catch (Exception e) {
+                return "Invalid format! Use: pickup packet -l (<x>, <y>)";
+            }
+        }
         if (action.equalsIgnoreCase("collect sun")) {
             String loc = cmd.getArg("-l");
             if (loc == null) {
@@ -250,6 +324,26 @@ public class GameMenuController extends Controller {
                 return "Invalid format! Use show tile status -l (<x>, <y>)";
             }
         }
+        if (action.equalsIgnoreCase("swap plants")) {
+    String loc1 = cmd.getArg("-l");
+    String loc2 = cmd.getArg("-m");
+    if (loc1 == null || loc2 == null) {
+        return "Usage: swap plants -l (<x1>,<y1>) -m (<x2>,<y2>)";
+    }
+    try {
+        loc1 = loc1.replace("(", "").replace(")", "");
+        loc2 = loc2.replace("(", "").replace(")", "");
+        String[] coords1 = loc1.split(",");
+        String[] coords2 = loc2.split(",");
+        int x1 = Integer.parseInt(coords1[0].trim());
+        int y1 = Integer.parseInt(coords1[1].trim());
+        int x2 = Integer.parseInt(coords2[0].trim());
+        int y2 = Integer.parseInt(coords2[1].trim());
+        return gameController.swapPlants(x1, y1, x2, y2);
+    } catch (Exception e) {
+        return "Invalid format! Use: swap plants -l (<x1>,<y1>) -m (<x2>,<y2>)";
+    }
+}
         if (input.toLowerCase().startsWith("release the nuke")) {
             return gameController.executeNuke();
         }
