@@ -1,6 +1,7 @@
 package model.entities.plant;
 
 import java.util.List;
+import java.util.Random;
 
 public class Plant {
     private int id;
@@ -44,6 +45,9 @@ public class Plant {
     private boolean isBlueFlame;
     private int magnetCooldownTicks;
 
+    // متغیر سطح گیاه
+    private int level = 1;
+
     public Plant(int id, String name, String category, List<String> tags, int cost, int baseHp, int damage, double actionInterval, double recharge, String abilityType, double abilityValue, String plantFoodType, double plantFoodValue) {
         this.id = id;
         this.name = name;
@@ -70,7 +74,6 @@ public class Plant {
         this.hitCount = 0;
         this.isBowlingBall = false;
         this.tickCounter = 0;
-
         this.plantStage = 1;
         this.stageTickCounter = 0;
         this.lifespanTicks = 600;
@@ -82,13 +85,110 @@ public class Plant {
         this.armorHp = 0;
         this.isBlueFlame = false;
         this.magnetCooldownTicks = 0;
-
         if (name != null) {
             if (name.equalsIgnoreCase("Potato Mine")) {
                 this.armTimerTicks = 150;
             } else if (name.equalsIgnoreCase("Primal Potato Mine")) {
                 this.armTimerTicks = 50;
             }
+        }
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
+        applyLevelUpgrades();
+    }
+
+    private void applyLevelUpgrades() {
+        if (name == null) return;
+        String cleanName = name.replace(" ", "").replace("-", "");
+
+        // گیاهان دست اول (۱ تا ۹)
+        if (cleanName.equalsIgnoreCase("Sunflower")) {
+            if (level >= 2) this.actionInterval = Math.max(1.0, this.actionInterval - 2.0);
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+        } else if (cleanName.equalsIgnoreCase("TwinSunflower")) {
+            if (level >= 2) this.actionInterval = Math.max(1.0, this.actionInterval - 2.0);
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("SunShroom")) { // شناسه ۳
+            if (level >= 2) this.actionInterval = Math.max(1.0, this.actionInterval - 2.0);
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+        } else if (cleanName.equalsIgnoreCase("PrimalSunflower")) {
+            if (level >= 2) this.actionInterval = Math.max(1.0, this.actionInterval - 2.0);
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("GoldBloom")) {
+            if (level >= 2) this.recharge = Math.max(0.0, this.recharge - 5.0);
+            if (level >= 3) this.abilityValue += 50.0;
+            if (level >= 4) this.recharge = Math.max(0.0, this.recharge - 10.0);
+        } else if (cleanName.equalsIgnoreCase("Peashooter")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("Repeater")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) this.recharge = Math.max(0.0, this.recharge - 1.0);
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("Threepeater")) {
+            if (level >= 2) this.cost = Math.max(0, this.cost - 25);
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.recharge = Math.max(0.0, this.recharge - 1.0);
+        } else if (cleanName.equalsIgnoreCase("SnowPea")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) this.abilityValue += 1.5;
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        }
+        // گیاهان دست دوم (۱۰ تا ۱۷)
+        else if (cleanName.equalsIgnoreCase("Rotobaga")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("PeaPod")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) { this.baseHp += 200; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("SplitPea")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) { this.baseHp += 200; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("Citron")) {
+            if (level >= 2) this.actionInterval = Math.max(1.0, this.actionInterval - 1.0);
+            if (level >= 3) this.damage += 150;
+            if (level >= 4) this.cost = Math.max(0, this.cost - 50);
+        } else if (cleanName.equalsIgnoreCase("Caulipower")) {
+            if (level >= 2) this.recharge = Math.max(0.0, this.recharge - 2.0);
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 50);
+        } else if (cleanName.equalsIgnoreCase("ElectricBlueberry")) {
+            if (level >= 2) this.recharge = Math.max(0.0, this.recharge - 2.0);
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("BowlingBulb")) {
+            if (level >= 2) this.actionInterval = Math.max(1.0, this.actionInterval - 1.0);
+            if (level >= 3) this.damage += 15;
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("Cactus")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) this.damage += 10;
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        }
+        // گیاهان جدید (۱۸ تا ۲۰)
+        else if (cleanName.equalsIgnoreCase("Starfruit")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("FirePeashooter")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) { this.baseHp += 150; initHealth(); }
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
+        } else if (cleanName.equalsIgnoreCase("LaserBean")) {
+            if (level >= 2) this.damage += 10;
+            if (level >= 3) this.actionInterval = Math.max(1.0, this.actionInterval - 0.5);
+            if (level >= 4) this.cost = Math.max(0, this.cost - 25);
         }
     }
 
@@ -126,12 +226,13 @@ public class Plant {
     public void update() {
         this.tickCounter++;
         this.stageTickCounter++;
-
         if (this.name != null) {
             if (this.name.equalsIgnoreCase("Sun-shroom")) {
-                if (this.plantStage == 1 && this.stageTickCounter >= 240) {
+                int stg2Ticks = (level >= 2) ? 190 : 240;
+                int stg3Ticks = (level >= 2) ? 720 : 960;
+                if (this.plantStage == 1 && this.stageTickCounter >= stg2Ticks) {
                     this.plantStage = 2;
-                } else if (this.plantStage == 2 && this.stageTickCounter >= 960) {
+                } else if (this.plantStage == 2 && this.stageTickCounter >= stg3Ticks) {
                     this.plantStage = 3;
                 }
             } else if (this.name.equalsIgnoreCase("Kiwibeast")) {
@@ -194,9 +295,19 @@ public class Plant {
     public double getSunProduce() {
         if (this.category != null && this.category.equalsIgnoreCase("SUN_PRODUCER")) {
             if (this.name != null && this.name.equalsIgnoreCase("Sun-shroom")) {
-                return this.plantStage == 1 ? 25.0 : (this.plantStage == 2 ? 50.0 : 75.0);
+                double baseProd = this.plantStage == 1 ? 25.0 : (this.plantStage == 2 ? 50.0 : 75.0);
+                if (this.level >= 4 && new Random().nextBoolean()) {
+                    baseProd *= 2;
+                }
+                return baseProd;
             }
-            return this.abilityValue;
+            double amount = this.abilityValue;
+            if (this.name != null && this.name.equalsIgnoreCase("Sunflower") && this.level >= 4) {
+                if (new Random().nextBoolean()) {
+                    amount *= 2;
+                }
+            }
+            return amount;
         }
         return 0.0;
     }
@@ -209,7 +320,7 @@ public class Plant {
     public int getBaseHp() { return baseHp; }
     public int getDamage() {
         if (this.name != null && this.name.equalsIgnoreCase("Pea Pod")) {
-            return 20 * this.peaPodHeads;
+            return (20 + (level >= 2 ? 10 : 0)) * this.peaPodHeads;
         }
         if (this.name != null && this.name.equalsIgnoreCase("Kiwibeast")) {
             return 15 * this.plantStage;
