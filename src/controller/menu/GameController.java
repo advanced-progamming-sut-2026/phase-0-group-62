@@ -4,7 +4,7 @@ import model.Game;
 import model.Tile;
 import model.entities.plant.factory.PlantFactory;
 import model.entities.plant.Plant;
-import model.entities.plant.loader.PlantLoader;  // <-- ADD THIS
+import model.entities.plant.loader.PlantLoader;
 import model.entities.zombie.Zombie;
 import model.entities.zombie.factory.ZombieFactory;
 import model.Sun;
@@ -16,8 +16,6 @@ import model.enums.TileType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import static model.minigame.Vasebreaker.*;
 
 public class GameController extends Controller {
     private Game game;
@@ -56,7 +54,6 @@ public class GameController extends Controller {
                 return "Error: Cannot plant past the red line! Max column allowed: " + wb.getRedLineX();
             }
 
-            // Check if the walnut is on the conveyor belt (case-insensitive)
             boolean onBelt = false;
             String beltType = null;
             for (String pName : game.getConveyorBeltPlants()) {
@@ -67,7 +64,6 @@ public class GameController extends Controller {
                 }
             }
 
-            // Also check if the user typed a partial match
             if (!onBelt) {
                 for (String pName : game.getConveyorBeltPlants()) {
                     String lowerName = pName.toLowerCase();
@@ -86,7 +82,6 @@ public class GameController extends Controller {
 
             Plant ball = PlantFactory.createPlant("WallNut");
             if (ball == null) ball = new Plant(88, beltType, "BOWLING", null, 0, 300, 50, 0, 0, null, 0, null, 0);
-
             game.getConveyorBeltPlants().remove(beltType);
             ball.setX(x);
             ball.setY(y);
@@ -99,12 +94,26 @@ public class GameController extends Controller {
         }
 
         Tile tile = game.getBoard().getTile(y, x);
-
         if (tile != null && (tile.getType() == TileType.GRAVE || tile.isSlideway())) {
             return "Error: Cannot plant on this tile! It is blocked by environment.";
         }
 
         Plant check = game.getPlantAt(x, y);
+
+        if (check != null && check.getName().equalsIgnoreCase("Pea Pod") && type.equalsIgnoreCase("Pea Pod")) {
+            if (check.getPeaPodHeads() < 5) {
+                Plant tempPlant = PlantFactory.createPlant("Pea Pod");
+                int cost = tempPlant != null ? tempPlant.getCost() : 125;
+                if (game.getSunCount() < cost) {
+                    return "Error: Not enough suns to stack Pea Pod! Required: " + cost;
+                }
+                game.spendSun(cost);
+                check.incrementPeaPodHead();
+                return "Successfully stacked head on Pea Pod at (" + x + ", " + y + "). Total heads: " + check.getPeaPodHeads();
+            } else {
+                return "Error: Pea Pod already has maximum heads (5)!";
+            }
+        }
 
         if (check != null && !check.getName().equalsIgnoreCase("Lily Pad")) {
             return "Error: There is already a plant here!";
@@ -128,7 +137,6 @@ public class GameController extends Controller {
 
         Plant newPlant = PlantFactory.createPlant(type);
         if (newPlant == null) {
-            // Try case-insensitive matching by checking all loaded plants
             List<Plant> allPlants = PlantLoader.loadPlants();
             for (Plant p : allPlants) {
                 if (p.getName().equalsIgnoreCase(type)) {
@@ -136,11 +144,8 @@ public class GameController extends Controller {
                     break;
                 }
             }
-            // If still null, try common variations
             if (newPlant == null) {
-                // Try with common name variations
-                String[] variations = {type, type.toLowerCase(), type.toUpperCase(),
-                        type.replace(" ", ""), type.replace(" ", "_")};
+                String[] variations = {type, type.toLowerCase(), type.toUpperCase(), type.replace(" ", ""), type.replace(" ", "_")};
                 for (String var : variations) {
                     newPlant = PlantFactory.createPlant(var);
                     if (newPlant != null) break;
@@ -150,6 +155,12 @@ public class GameController extends Controller {
                 return "Error: Plant type not found! Try: PeaShooter, Sunflower, WallNut, etc.";
             }
         }
+
+        if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
+            int userLvl = model.UserSession.getCurrentUser().getPlantLevels().getOrDefault(newPlant.getName(), 1);
+            newPlant.setLevel(userLvl);
+        }
+
         if (game.getSunCount() < newPlant.getCost()) {
             return "Error: Not enough suns! Required: " + newPlant.getCost();
         }
@@ -233,14 +244,12 @@ public class GameController extends Controller {
         else if (fromType.equalsIgnoreCase("cabbage-pult") && toType.equalsIgnoreCase("melon-pult")) cost = 1000;
         else if (fromType.equalsIgnoreCase("melon-pult") && toType.equalsIgnoreCase("winter-melon")) cost = 750;
         else return "Error: Invalid upgrade combination specified.";
-
         if (game.getSunCount() < cost) {
             return "Error: Not enough suns! Required: " + cost + ", Available: " + game.getSunCount();
         }
 
         game.spendSun(cost);
         int upgradedCount = 0;
-
         for (int r = 0; r < 5; r++) {
             for (int c = 0; c < 9; c++) {
                 Tile tile = game.getBoard().getTile(r, c);
@@ -291,7 +300,6 @@ public class GameController extends Controller {
             target = tile.getSupportPlant();
         }
         if (target == null) return "Error: There is no plant at this location to pluck.";
-
         game.removePlant(target);
         if (tile != null) {
             if (tile.getPlant() == target) {
@@ -313,10 +321,10 @@ public class GameController extends Controller {
         Plant target = game.getPlantAt(x, y);
         if (target == null) return "Error: There is no plant here to feed.";
         if (game.getPlantFoodCount() <= 0) return "Error: You do not have any plant food left.";
-
         if (game.usePlantFood()) {
             target.heal(target.getMaxHealth());
-            return "Successfully fed plant at (" + x + ", " + y + "). HP fully restored!";
+            String pfReport = game.applyPlantFood(target);
+            return "Successfully fed plant at (" + x + ", " + y + "). HP fully restored! " + pfReport;
         }
         return "Error: Could not use plant food.";
     }
@@ -336,9 +344,11 @@ public class GameController extends Controller {
             game.getSuns().remove(targetSun);
             return "Collected sun at (" + x + ", " + y + "). Total: " + game.getSunCount();
         } else if (targetPlant != null && targetPlant.isHasSunToCollect()) {
-            game.addSun(25);
+            int sunAmount = (int) targetPlant.getSunProduce();
+            if (sunAmount <= 0) sunAmount = 25;
+            game.addSun(sunAmount);
             targetPlant.setHasSunToCollect(false);
-            return "Collected sun from " + targetPlant.getName() + " at (" + x + ", " + y + "). Total: " + game.getSunCount();
+            return "Collected " + sunAmount + " sun from " + targetPlant.getName() + " at (" + x + ", " + y + "). Total: " + game.getSunCount();
         }
         return "Error: No sun available to collect at this location.";
     }
@@ -357,7 +367,6 @@ public class GameController extends Controller {
 
         String content = vb.getVaseContent(y, x);
         vb.breakVase(y, x, game);
-
         Tile tile = game.getBoard().getTile(y, x);
         if (tile != null && tile.getTemporarySeedPacket() != null) {
             return "Smashed vase at (" + x + ", " + y + "): Dropped a Seed Packet! Pick it up quickly.";
@@ -377,6 +386,7 @@ public class GameController extends Controller {
             return "Smashed vase at (" + x + ", " + y + ")";
         }
     }
+
     public String pickupPacket(int x, int y) {
         if (game == null || !(game.getActiveMiniGame() instanceof Vasebreaker)) {
             return "Error: Not currently in a Vasebreaker mini-game.";
@@ -399,7 +409,6 @@ public class GameController extends Controller {
         tile.setPlant(droppedPlant);
         return "Picked up and successfully planted " + packet + " at tile (" + x + ", " + y + ").";
     }
-
 
     public String processZombieDeathDrops(Zombie zombie) {
         StringBuilder message = new StringBuilder();
@@ -477,7 +486,6 @@ public class GameController extends Controller {
                 game.getSpawner().ticksSinceLastSpawn = 1;
             }
             game.tick();
-
 
             accumulatedTurnLogs.addAll(game.getRawLogMessagesDirectly());
 
