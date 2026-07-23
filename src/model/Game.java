@@ -329,16 +329,23 @@ public class Game {
         updatePlantsAndAbilities();
         List<Zombie> zombiesToRemove = new ArrayList<>();
         List<Zombie> zombiesToAdd = new ArrayList<>();
+
         for (Zombie zombie : new ArrayList<>(activeZombies)) {
             zombie.updateEffects();
             zombie.updateCooldown();
+
             if (!zombie.isAlive()) {
                 zombiesToRemove.add(zombie);
-                if (zombie.getStolenSuns() > 0) {
-                    int returnSun = zombie.getName().equalsIgnoreCase("ZombieCrystalSkull") ?
-                            zombie.getStolenSuns() / 2 : zombie.getStolenSuns();
+                // === TURQUOISE ZOMBIE: Return stolen suns on death ===
+                if (zombie.getName().equalsIgnoreCase("ZombieCrystalSkull")) {
+                    if (zombie.getStolenSunCount() > 0) {
+                        addSun(zombie.getStolenSunCount());
+                        gameLogMessages.add("Turquoise Zombie died! Returned " + zombie.getStolenSunCount() + " stolen suns.");
+                    }
+                } else if (zombie.getStolenSuns() > 0) {
+                    int returnSun = zombie.getName().equalsIgnoreCase("ZombieRa") ? zombie.getStolenSuns() : zombie.getStolenSuns();
                     addSun(returnSun);
-                    gameLogMessages.add("Ra/Turquoise Zombie died! Returned " + returnSun + " stolen suns.");
+                    gameLogMessages.add("Ra Zombie died! Returned " + returnSun + " stolen suns.");
                 }
                 if (zombie.getName().equalsIgnoreCase("ZombieWizard")) {
                     for (Plant p : activePlants) {
@@ -358,9 +365,48 @@ public class Game {
             }
 
             processSpecialZombieAbilities(zombie, zombiesToAdd);
+
             if (!zombie.hasEffect(ZombieEffect.FROZEN)) {
                 double zombieX = zombie.getX();
                 int zombieY = zombie.getY();
+
+                // === DODO RIDER: Check for obstacles to jump over ===
+                if (zombie.isDodoRider() && !zombie.isJumping() && zombie.getJumpCooldown() <= 0) {
+                    int nextTileX = (int) Math.floor(zombieX) - 1;
+                    if (nextTileX >= 0 && nextTileX < board.getColumns()) {
+                        Tile nextTile = board.getTile(zombieY, nextTileX);
+                        Plant plantAtNext = getPlantAt(nextTileX, zombieY);
+
+                        boolean shouldJump = false;
+
+                        // Check for slideways (pits/cavities)
+                        if (nextTile != null && nextTile.isSlideway()) {
+                            shouldJump = true;
+                        }
+
+                        // Check for Wall-Nut (but NOT Tall-Nut)
+                        if (plantAtNext != null && plantAtNext.getName().equalsIgnoreCase("WallNut") &&
+                                !plantAtNext.getName().equalsIgnoreCase("TallNut")) {
+                            shouldJump = true;
+                        }
+
+                        // Check for push-away plants
+                        if (plantAtNext != null && (plantAtNext.getName().equalsIgnoreCase("Chomper") ||
+                                plantAtNext.getName().equalsIgnoreCase("Squash") ||
+                                plantAtNext.getName().equalsIgnoreCase("PotatoMine") ||
+                                plantAtNext.getName().equalsIgnoreCase("PrimalPotatoMine"))) {
+                            shouldJump = true;
+                        }
+
+                        if (shouldJump) {
+                            int jumpDistance = 2;
+                            double targetX = nextTileX - jumpDistance;
+                            if (targetX < 0) targetX = 0;
+                            zombie.startJump(targetX, 10);
+                            gameLogMessages.add("Dodo Rider jumped over obstacle at (" + nextTileX + ", " + zombieY + ")!");
+                        }
+                    }
+                }
 
                 int targetPlantX = (int) Math.floor(zombieX);
                 if (zombieX - targetPlantX == 0.0) {
@@ -368,7 +414,33 @@ public class Game {
                 }
 
                 Plant targetPlant = getPlantAt(targetPlantX, zombieY);
+
                 if (targetPlant != null && !targetPlant.isBowlingBall() && zombieX - targetPlant.getX() <= 1.05) {
+                    // === BARREL ROLLER: Crush plants with barrel ===
+                    if (zombie.isBarrelRoller() && !zombie.isBarrelDestroyed()) {
+                        activePlants.remove(targetPlant);
+                        board.getTile(targetPlant.getY(), targetPlant.getX()).setPlant(null);
+                        plantsLostCount++;
+                        gameLogMessages.add("Barrel Roller crushed " + targetPlant.getName() + " at (" + targetPlant.getX() + ", " + targetPlant.getY() + ")!");
+                        continue;
+                    }
+
+                    // === TROGLOBITE: Crush plants with ice block ===
+                    if (zombie.isTroglobite() && !zombie.isIceBlockDestroyed()) {
+                        activePlants.remove(targetPlant);
+                        board.getTile(targetPlant.getY(), targetPlant.getX()).setPlant(null);
+                        plantsLostCount++;
+                        gameLogMessages.add("Troglobite crushed " + targetPlant.getName() + " with ice block at (" + targetPlant.getX() + ", " + targetPlant.getY() + ")!");
+                        continue;
+                    }
+
+                    // === SNORKEL: Surface to eat ===
+                    if (zombie.getName().equalsIgnoreCase("ZombieBeachSnorkel") && zombie.isUnderwater()) {
+                        zombie.setUnderwater(false);
+                        zombie.setHasSurfaced(true);
+                        gameLogMessages.add("Snorkel Zombie surfaced at (" + targetPlant.getX() + ", " + targetPlant.getY() + ")!");
+                    }
+
                     if (zombie.getName().equalsIgnoreCase("ZombieExplorer") && zombie.isTorchLit()) {
                         activePlants.remove(targetPlant);
                         board.getTile(targetPlant.getY(), targetPlant.getX()).setPlant(null);
@@ -384,10 +456,7 @@ public class Game {
                             plantsLostCount++;
                         }
                     } else if (zombie.getName().equalsIgnoreCase("ZombieWizard")) {
-                        if (!targetPlant.isTransformedToSheep()) {
-                            targetPlant.setTransformedToSheep(true);
-                            gameLogMessages.add("Wizard Zombie transformed plant at (" + targetPlant.getX() + ", " + targetPlant.getY() + ") into a sheep!");
-                        }
+                        // Wizard doesn't eat plants - handled in processSpecialZombieAbilities
                     } else {
                         if (tickCount % 10 == 0) {
                             targetPlant.takeDamage(zombie.getDamage());
@@ -404,6 +473,12 @@ public class Game {
                         }
                     }
                 } else {
+                    // === SNORKEL: Stay underwater until near plants ===
+                    if (zombie.getName().equalsIgnoreCase("ZombieBeachSnorkel") && zombie.isUnderwater()) {
+                        zombie.move();
+                        continue;
+                    }
+
                     int nextTileX = (int) Math.floor(zombieX);
                     if (nextTileX >= 0 && nextTileX < board.getColumns() && zombieY >= 0 && zombieY < board.getRows()) {
                         Tile currentTile = board.getTile(zombieY, nextTileX);
@@ -472,6 +547,15 @@ public class Game {
         }
         activeZombies.removeAll(zombiesToRemove);
         activeZombies.addAll(zombiesToAdd);
+
+        // === SNORKEL: Underwater invulnerability (heal while underwater) ===
+        for (Zombie z : activeZombies) {
+            if (z.getName().equalsIgnoreCase("ZombieBeachSnorkel") && z.isUnderwater()) {
+                if (z.getHealth() < z.getMaxHealth()) {
+                    z.setHealth(z.getHealth() + 1);
+                }
+            }
+        }
 
         if (lost || won || !running) return;
         if (spawner != null) {
@@ -680,7 +764,6 @@ public class Game {
             bullets.add(new Bullet(dmg, py, px + 1, Bullet.BulletType.STRIKE_THROUGH, true, false, 0));
         } else if (name.equalsIgnoreCase("Fire Peashooter")) {
             bullets.add(new Bullet(40 + (plant.getLevel() >= 2 ? 10 : 0), py, px + 1, Bullet.BulletType.FIRE, false, false, 0));
-            // ذوب کردن یخ زامبی در صورت حضور
             Zombie z = getFirstZombieInRowAhead(py, px);
             if (z != null && (z.hasEffect(ZombieEffect.FROZEN) || z.hasEffect(ZombieEffect.CHILLED))) {
                 z.removeEffect(ZombieEffect.FROZEN);
@@ -688,14 +771,12 @@ public class Game {
                 gameLogMessages.add("Fire Peashooter melted ice on zombie in lane " + py);
             }
         } else if (name.equalsIgnoreCase("Starfruit")) {
-            // شلیک ۵ جهته (جلو، بالا، پایین، عقب-بالا، عقب-پایین)
             bullets.add(new Bullet(dmg, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
             if (py > 0) bullets.add(new Bullet(dmg, py - 1, px, Bullet.BulletType.NORMAL, false, false, 0));
             if (py < board.getRows() - 1) bullets.add(new Bullet(dmg, py + 1, px, Bullet.BulletType.NORMAL, false, false, 0));
             if (py > 0) bullets.add(new Bullet(dmg, py - 1, Math.max(0, px - 1), Bullet.BulletType.NORMAL, false, false, 0));
             if (py < board.getRows() - 1) bullets.add(new Bullet(dmg, py + 1, Math.max(0, px - 1), Bullet.BulletType.NORMAL, false, false, 0));
         } else if (name.equalsIgnoreCase("Laser Bean")) {
-            // شلیک پرتو لیزر نافذ کل لاین
             bullets.add(new Bullet(dmg, py, px + 1, Bullet.BulletType.LASER, true, false, 0));
             gameLogMessages.add("Laser Bean fired a laser beam down row " + py);
         } else if (name.equalsIgnoreCase("Mega Gatling Pea")) {
@@ -730,7 +811,7 @@ public class Game {
             addSun(250);
             gameLogMessages.add("Twin Sunflower generated 250 suns with Plant Food!");
             return "Plant Food Effect: Produced 250 suns!";
-        } else if (name.equalsIgnoreCase("Sun-shroom")) { // شناسه ۳
+        } else if (name.equalsIgnoreCase("Sun-shroom")) {
             plant.setPlantStage(3);
             addSun(225);
             gameLogMessages.add("Sun-shroom instantly grew to max size and generated 225 suns!");
@@ -838,7 +919,7 @@ public class Game {
             bullets.add(new Bullet(150, py, px + 1, Bullet.BulletType.STRIKE_THROUGH, true, false, 0));
             gameLogMessages.add("Cactus fired electric thorns with infinite penetration!");
             return "Plant Food Effect: Fired electric thorns with infinite penetration!";
-        } else if (name.equalsIgnoreCase("Starfruit")) { // شناسه ۱۸
+        } else if (name.equalsIgnoreCase("Starfruit")) {
             for (int i = 0; i < 10; i++) {
                 bullets.add(new Bullet(100, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
                 if (py > 0) bullets.add(new Bullet(100, py - 1, px, Bullet.BulletType.NORMAL, false, false, 0));
@@ -848,7 +929,7 @@ public class Game {
             }
             gameLogMessages.add("Starfruit unleashed giant star barrage in 5 directions!");
             return "Plant Food Effect: Unleashed giant star barrage in 5 directions!";
-        } else if (name.equalsIgnoreCase("Fire Peashooter")) { // شناسه ۱۹
+        } else if (name.equalsIgnoreCase("Fire Peashooter")) {
             for (Zombie z : activeZombies) {
                 if (z.getY() == py) {
                     z.takeDamage(500, true);
@@ -858,7 +939,7 @@ public class Game {
             }
             gameLogMessages.add("Fire Peashooter scorched the entire row with a trail of fire!");
             return "Plant Food Effect: Scorched the entire row with fire!";
-        } else if (name.equalsIgnoreCase("Laser Bean")) { // شناسه ۲۰
+        } else if (name.equalsIgnoreCase("Laser Bean")) {
             for (Zombie z : activeZombies) {
                 if (z.getY() == py) {
                     z.takeDamage(1800, true);
@@ -1078,6 +1159,8 @@ public class Game {
 
     private void processSpecialZombieAbilities(Zombie zombie, List<Zombie> zombiesToAdd) {
         String name = zombie.getName();
+
+        // === GARGANTUAR: Throw imp ===
         if (name.equalsIgnoreCase("ZombieGargantuar") && !zombie.isHasThrownImp()) {
             if (zombie.getHealth() <= zombie.getMaxHealth() / 2) {
                 zombie.setHasThrownImp(true);
@@ -1090,6 +1173,8 @@ public class Game {
                 }
             }
         }
+
+        // === RA ZOMBIE: Steal suns ===
         if (name.equalsIgnoreCase("ZombieRa")) {
             zombie.incrementRaStealTimer();
             if (zombie.getRaStealTimer() >= 20) {
@@ -1101,6 +1186,25 @@ public class Game {
                 }
             }
         }
+
+        // === TURQUOISE ZOMBIE (ZombieCrystalSkull): Steal suns with cooldown ===
+        if (name.equalsIgnoreCase("ZombieCrystalSkull")) {
+            zombie.incrementTurquoiseLaserTimer();
+            // Use the existing timer as sun steal cooldown (every 30 ticks)
+            if (zombie.getTurquoiseLaserTimer() >= 30) {
+                zombie.resetTurquoiseLaserTimer();
+                // Look for suns on the map
+                if (!suns.isEmpty()) {
+                    Sun targetSun = suns.remove(0);
+                    int sunValue = targetSun.getValue();
+                    zombie.addStolenSunCount(sunValue);
+                    zombie.setStolenSuns(zombie.getStolenSuns() + sunValue);
+                    gameLogMessages.add("Turquoise Zombie stole " + sunValue + " suns from position (" + targetSun.getColumn() + ", " + targetSun.getRow() + ")!");
+                }
+            }
+        }
+
+        // === TOMB RAISER ===
         if (name.equalsIgnoreCase("ZombieTombRaiser")) {
             zombie.incrementTombraiserTimer();
             if (zombie.getTombraiserTimer() >= 100) {
@@ -1115,6 +1219,8 @@ public class Game {
                 }
             }
         }
+
+        // === HUNTER ZOMBIE ===
         if (name.equalsIgnoreCase("ZombieIceAgeHunter")) {
             if (tickCount % 30 == 0) {
                 Plant p = getFirstPlantInRow(zombie.getY());
@@ -1124,6 +1230,8 @@ public class Game {
                 }
             }
         }
+
+        // === FISHERMAN ZOMBIE ===
         if (name.equalsIgnoreCase("ZombieBeachFisherman")) {
             zombie.incrementFishermanTimer();
             if (zombie.getFishermanTimer() >= 25) {
@@ -1143,6 +1251,8 @@ public class Game {
                 }
             }
         }
+
+        // === OCTOPUS ZOMBIE ===
         if (name.equalsIgnoreCase("ZombieBeachOctopus")) {
             zombie.incrementOctopusTimer();
             if (zombie.getOctopusTimer() >= 40) {
@@ -1154,7 +1264,17 @@ public class Game {
                 }
             }
         }
+
+        // === KING ZOMBIE: Stay idle at spawn position and knight nearby zombies ===
         if (name.equalsIgnoreCase("ZombieDarkKing")) {
+            // Set king to idle at spawn position
+            if (!zombie.isIdle()) {
+                zombie.setIdle(true);
+                zombie.setSpawnX(zombie.getX());
+                zombie.setKing(true);
+                gameLogMessages.add("King Zombie has taken his throne at column " + (int) zombie.getX() + "!");
+            }
+
             zombie.incrementKingTimer();
             if (zombie.getKingTimer() >= 25) {
                 zombie.resetKingTimer();
@@ -1170,29 +1290,51 @@ public class Game {
                 }
             }
         }
-        if (name.equalsIgnoreCase("ZombieCrystalSkull")) {
-            zombie.incrementTurquoiseLaserTimer();
-            if (zombie.getTurquoiseLaserTimer() >= 50) {
-                zombie.resetTurquoiseLaserTimer();
-                int startCol = (int) Math.floor(zombie.getX());
-                for (int c = startCol; c >= Math.max(0, startCol - 4); c--) {
-                    Plant p = getPlantAt(c, zombie.getY());
-                    if (p != null) {
-                        activePlants.remove(p);
-                        board.getTile(p.getY(), p.getX()).setPlant(null);
-                        gameLogMessages.add("Turquoise Zombie fired laser and destroyed plant " + p.getName() + " at column " + c);
+
+        // === WIZARD ZOMBIE: Transform plants into sheep (priority: plants in front) ===
+        if (name.equalsIgnoreCase("ZombieWizard")) {
+            zombie.incrementWizardTimer();
+            if (zombie.getWizardTimer() >= 60) {
+                zombie.resetWizardTimer();
+                // Find plants to transform (priority: plants in front of the wizard)
+                List<Plant> candidates = new ArrayList<>();
+                for (Plant p : activePlants) {
+                    if (p.getY() == zombie.getY() && p.getX() < zombie.getX()) {
+                        candidates.add(p);
                     }
+                }
+                // Sort by distance (closest first)
+                candidates.sort((a, b) -> Double.compare(b.getX(), a.getX()));
+
+                Plant target = null;
+                if (!candidates.isEmpty()) {
+                    target = candidates.get(0); // Closest plant in front
+                } else if (!activePlants.isEmpty()) {
+                    // No plant in front, pick random
+                    target = activePlants.get(new Random().nextInt(activePlants.size()));
+                }
+
+                if (target != null && !target.isTransformedToSheep()) {
+                    target.setTransformedToSheep(true);
+                    gameLogMessages.add("Wizard Zombie transformed " + target.getName() + " at (" + target.getX() + ", " + target.getY() + ") into a sheep!");
                 }
             }
         }
+
+        // === PROSPECTOR ZOMBIE: Dynamite explosion landing (lands at column 1, before lawn mower) ===
         if (name.equalsIgnoreCase("ZombieProspector") && zombie.getDynamiteTimer() > 0) {
             if (zombie.getDynamiteTimer() <= 1.0) {
                 zombie.setDynamiteTimer(0.0);
-                zombie.setX(0.0);
+                // Land at column 1 (before the lawn mower at column 0)
+                double landingPos = 1.0;
+                zombie.setX(landingPos);
+                zombie.setHasLandedAfterExplosion(true);
                 zombie.setAngry(true);
-                gameLogMessages.add("Prospector Zombie's dynamite exploded! Flew to end of row.");
+                gameLogMessages.add("Prospector Zombie landed at column 1 after dynamite explosion!");
             }
         }
+
+        // === PIANO ZOMBIE ===
         if (name.equalsIgnoreCase("ZombiePiano")) {
             zombie.incrementPianoPlayTimer();
             if (zombie.getPianoPlayTimer() >= 30) {
@@ -1207,6 +1349,20 @@ public class Game {
                     }
                 }
                 gameLogMessages.add("Piano Zombie played music! Zombies swapped lanes!");
+            }
+        }
+
+        // === JESTER ZOMBIE: Reflect projectiles when insane ===
+        if (zombie.isJuggler() && zombie.isInsane() && zombie.isReflecting()) {
+            // Jester reflects projectiles back at plants
+            Plant targetPlant = getFirstPlantInRow(zombie.getY());
+            if (targetPlant != null) {
+                targetPlant.takeDamage(50);
+                gameLogMessages.add("Jester reflected a projectile, damaging " + targetPlant.getName() + "!");
+            }
+            zombie.incrementReflectCooldown();
+            if (zombie.getReflectCooldown() >= 20) {
+                zombie.setReflecting(false);
             }
         }
     }
