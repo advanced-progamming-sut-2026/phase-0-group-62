@@ -5,11 +5,18 @@ import model.entities.plant.loader.PlantLoader;
 import java.util.List;
 
 public class PlantFactory {
-    private static final List<Plant> templates = PlantLoader.loadPlants();
+    private static List<Plant> templates = null;
 
     public static Plant createPlant(String type) {
+        if (type == null) return null;
+        String cleanType = type.replaceAll("^\"|\"$", "").trim();
+        if (templates == null || templates.isEmpty()) {
+            templates = PlantLoader.loadPlants();
+        }
+
         for (Plant template : templates) {
-            if (template.getName().equalsIgnoreCase(type)) {
+            if (template.getName().replace(" ", "").replace("-", "")
+                    .equalsIgnoreCase(cleanType.replace(" ", "").replace("-", ""))) {
                 Plant p = new Plant(
                         template.getId(),
                         template.getName(),

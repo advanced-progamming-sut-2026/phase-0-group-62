@@ -493,18 +493,40 @@ public class MenuController {
         }
         if (action.equalsIgnoreCase("purchase-plant")) {
             String target = cmd.getArg("-p");
-            if (currentUser.getUnlockedPlants().contains(target)) {
+            if (target == null) return "Error: Please specify plant with -p <plant_name>";
+
+            // Clean quotes and spaces
+            target = target.replaceAll("^\"|\"$", "").trim();
+            final String cleanTarget = target;
+
+            Plant dbPlant = allPlants.stream()
+                    .filter(p -> p.getName().replace(" ", "").replace("-", "")
+                            .equalsIgnoreCase(cleanTarget.replace(" ", "").replace("-", "")))
+                    .findFirst().orElse(null);
+
+            if (dbPlant == null) {
+                return "Error: Plant not found in game data.";
+            }
+
+            String realName = dbPlant.getName();
+
+            boolean alreadyUnlocked = currentUser.getUnlockedPlants().stream()
+                    .anyMatch(p -> p.replace(" ", "").replace("-", "").replace("\"", "")
+                            .equalsIgnoreCase(realName.replace(" ", "").replace("-", "")));
+
+            if (alreadyUnlocked) {
                 return "Error: You already own this plant.";
             }
             if (currentUser.getCoins() < 2000) {
                 return "Error: Not enough coins. Cost is 2000. You have: " + currentUser.getCoins();
             }
+
             currentUser.setCoins(currentUser.getCoins() - 2000);
-            currentUser.getUnlockedPlants().add(target);
-            currentUser.getPlantLevels().put(target, 1);
-            addNews("New plant unlocked: " + target + "! Check your collection.");
+            currentUser.getUnlockedPlants().add(realName);
+            currentUser.getPlantLevels().put(realName, 1);
+            addNews("New plant unlocked: " + realName + "! Check your collection.");
             FileManager.updateUser(currentUser);
-            return "Plant " + target + " purchased successfully for 2000 coins!";
+            return "Plant " + realName + " purchased successfully for 2000 coins!";
         }
         return "error";
     }

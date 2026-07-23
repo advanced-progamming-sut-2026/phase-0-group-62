@@ -16,6 +16,7 @@ import model.minigame.IZombie;
 import model.minigame.Zombotany;
 import model.minigame.Beghoul;
 import model.season.Season;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -325,19 +326,8 @@ public class Game {
             }
         }
 
-        for (Plant plant : new ArrayList<>(activePlants)) {
-            if (plant.isFrozen() || plant.isBowlingBall()) continue;
-            plant.update();
-            if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SUN_PRODUCER")) {
-                int plantInterval = (int) (plant.getActionInterval() * 10);
-                if (plantInterval > 0 && plant.shouldShoot()) {
-                    if (!plant.isHasSunToCollect()) {
-                        plant.setHasSunToCollect(true);
-                        gameLogMessages.add("plant " + plant.getName().toLowerCase() + " produced a sun at (" + plant.getX() + ", " + plant.getY() + ")");
-                    }
-                }
-            }
-        }
+        // Execution of plants action logic
+        updatePlantsAndAbilities();
 
         List<Zombie> zombiesToRemove = new ArrayList<>();
         List<Zombie> zombiesToAdd = new ArrayList<>();
@@ -369,7 +359,6 @@ public class Game {
                 zombiesKilledInLevel++;
                 continue;
             }
-
 
             processSpecialZombieAbilities(zombie, zombiesToAdd);
 
@@ -545,23 +534,6 @@ public class Game {
             }
         }
 
-        for (Plant plant : activePlants) {
-            if (plant.isFrozen() || plant.isBowlingBall() || plant.isTransformedToSheep()) continue;
-            if (plant.getCategory() != null && plant.getCategory().equalsIgnoreCase("SHOOTER")) {
-                if (plant.shouldShoot() && (hasZombieInRow(plant.getY()) || board.hasGraveInRow(plant.getY()))) {
-                    Bullet.BulletType bType = Bullet.BulletType.NORMAL;
-                    if (plant.getName().toLowerCase().contains("pult") || plant.getName().toLowerCase().contains("melon")) {
-                        bType = Bullet.BulletType.LOB;
-                    } else if (plant.getName().toLowerCase().contains("snow") || plant.getName().toLowerCase().contains("ice")) {
-                        bType = Bullet.BulletType.ICE;
-                    } else if (plant.getName().toLowerCase().contains("fire")) {
-                        bType = Bullet.BulletType.FIRE;
-                    }
-                    bullets.add(new Bullet(20, plant.getY(), plant.getX() + 1, bType, false, false, 0));
-                }
-            }
-        }
-
         board.updateProjectilesAndCollisions(this);
 
         if (spawner != null && !(activeMiniGame instanceof Vasebreaker) && !(activeMiniGame instanceof IZombie) && !(activeMiniGame instanceof Beghoul)) {
@@ -612,6 +584,297 @@ public class Game {
                             gameLogMessages.add("Wave " + nextWave + " started.");
                         }
                     }
+                }
+            }
+        }
+    }
+
+    private void updatePlantsAndAbilities() {
+        List<Plant> plantsToRemove = new ArrayList<>();
+
+        for (Plant plant : new ArrayList<>(activePlants)) {
+            if (plant.isFrozen() || plant.isBowlingBall() || plant.isTransformedToSheep()) {
+                continue;
+            }
+
+            plant.update();
+            String name = plant.getName();
+
+            if ("SUN_PRODUCER".equalsIgnoreCase(plant.getCategory())) {
+                if (name.equalsIgnoreCase("Gold Bloom")) {
+                    addSun((int) plant.getAbilityValue());
+                    plantsToRemove.add(plant);
+                    gameLogMessages.add("Gold Bloom burst and produced 375 suns!");
+                } else if (name.equalsIgnoreCase("Enlighten-mint")) {
+                    triggerMintBoost("SUN_PRODUCER");
+                    plantsToRemove.add(plant);
+                    gameLogMessages.add("Enlighten-mint boosted all Sun Producers!");
+                } else {
+                    int intervalTicks = (int) (plant.getActionInterval() * 10);
+                    if (intervalTicks > 0 && plant.shouldShoot()) {
+                        if (!plant.isHasSunToCollect()) {
+                            plant.setHasSunToCollect(true);
+                            gameLogMessages.add("Plant " + name + " produced sun at (" + plant.getX() + ", " + plant.getY() + ")");
+                        }
+                    }
+                }
+            }
+
+            boolean isAttacker = "SHOOTER".equalsIgnoreCase(plant.getCategory()) ||
+                    "STRIKE_THROUGH".equalsIgnoreCase(plant.getCategory()) ||
+                    "HOMING".equalsIgnoreCase(plant.getCategory()) ||
+                    "LOBBER".equalsIgnoreCase(plant.getCategory());
+
+            if (isAttacker && plant.shouldShoot()) {
+                boolean targetInRow = hasZombieInRow(plant.getY()) || board.hasGraveInRow(plant.getY());
+                boolean globalTarget = !activeZombies.isEmpty();
+
+                if (targetInRow || ("HOMING".equalsIgnoreCase(plant.getCategory()) && globalTarget)) {
+                    spawnBulletsForPlant(plant);
+                }
+            }
+
+            if ("MELEE".equalsIgnoreCase(plant.getCategory()) && plant.shouldShoot()) {
+                executeMeleeAttack(plant);
+            }
+
+            if ("EXPLOSIVE".equalsIgnoreCase(plant.getCategory())) {
+                executeExplosiveLogic(plant, plantsToRemove);
+            }
+
+            if ("MODIFIER".equalsIgnoreCase(plant.getCategory()) || "HOMING".equalsIgnoreCase(plant.getCategory())) {
+                executeUtilityLogic(plant, plantsToRemove);
+            }
+
+            if (name.contains("-mint") && !"Enlighten-mint".equalsIgnoreCase(name)) {
+                executeMintLogic(plant, plantsToRemove);
+            }
+        }
+
+        for (Plant p : plantsToRemove) {
+            removePlant(p);
+            Tile t = board.getTile(p.getY(), p.getX());
+            if (t != null && t.getPlant() == p) {
+                t.setPlant(null);
+            }
+        }
+    }
+
+    private void spawnBulletsForPlant(Plant plant) {
+        String name = plant.getName();
+        int px = plant.getX();
+        int py = plant.getY();
+
+        if (name.equalsIgnoreCase("Peashooter") || name.equalsIgnoreCase("Pea Pod")) {
+            int heads = plant.getPeaPodHeads();
+            for (int i = 0; i < heads; i++) {
+                bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            }
+        } else if (name.equalsIgnoreCase("Repeater")) {
+            bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+        } else if (name.equalsIgnoreCase("Threepeater")) {
+            for (int r = Math.max(0, py - 1); r <= Math.min(board.getRows() - 1, py + 1); r++) {
+                bullets.add(new Bullet(20, r, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            }
+        } else if (name.equalsIgnoreCase("Snow Pea")) {
+            bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.ICE, false, false, 0));
+        } else if (name.equalsIgnoreCase("Fire Peashooter")) {
+            bullets.add(new Bullet(40, py, px + 1, Bullet.BulletType.FIRE, false, false, 0));
+        } else if (name.equalsIgnoreCase("Split Pea")) {
+            bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            bullets.add(new Bullet(20, py, px - 1, Bullet.BulletType.NORMAL, false, false, 0));
+            bullets.add(new Bullet(20, py, px - 1, Bullet.BulletType.NORMAL, false, false, 0));
+        } else if (name.equalsIgnoreCase("Mega Gatling Pea")) {
+            for (int i = 0; i < 4; i++) {
+                bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            }
+        } else if (name.equalsIgnoreCase("Cactus") || name.equalsIgnoreCase("Fume-shroom")) {
+            bullets.add(new Bullet(30, py, px + 1, Bullet.BulletType.STRIKE_THROUGH, true, false, 0));
+        } else if (name.equalsIgnoreCase("Goo Peashooter")) {
+            bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.POISON, false, false, 0));
+        } else if (name.equalsIgnoreCase("Citron")) {
+            bullets.add(new Bullet(800, py, px + 1, Bullet.BulletType.LASER, true, false, 0));
+        } else if (name.equalsIgnoreCase("Rotobaga") || name.equalsIgnoreCase("Starfruit")) {
+            bullets.add(new Bullet(20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            if (py > 0) bullets.add(new Bullet(20, py - 1, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+            if (py < board.getRows() - 1) bullets.add(new Bullet(20, py + 1, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+        } else if (name.toLowerCase().contains("pult") || name.toLowerCase().contains("melon")) {
+            Bullet.BulletType bType = name.toLowerCase().contains("winter") ? Bullet.BulletType.ICE : Bullet.BulletType.LOB;
+            int dmg = name.toLowerCase().contains("melon") ? 80 : 40;
+            bullets.add(new Bullet(dmg, py, px + 1, bType, false, name.toLowerCase().contains("melon"), 1));
+        } else {
+            bullets.add(new Bullet(plant.getDamage() > 0 ? plant.getDamage() : 20, py, px + 1, Bullet.BulletType.NORMAL, false, false, 0));
+        }
+    }
+
+    private void executeMeleeAttack(Plant plant) {
+        String name = plant.getName();
+        int px = plant.getX();
+        int py = plant.getY();
+
+        if (name.equalsIgnoreCase("Chomper")) {
+            if (!plant.isDigesting()) {
+                Zombie target = getFirstZombieInRowAhead(py, px);
+                if (target != null && target.getX() - px <= 1.2) {
+                    target.takeDamage(99999, true);
+                    plant.startDigestion(400);
+                    gameLogMessages.add("Chomper swallowed a zombie at (" + px + ", " + py + ")!");
+                }
+            }
+        } else if (name.equalsIgnoreCase("Bonk Choy") || name.equalsIgnoreCase("Wasabi Whip")) {
+            for (Zombie z : activeZombies) {
+                if (z.getY() == py && Math.abs(z.getX() - px) <= 1.1) {
+                    z.takeDamage(plant.getDamage(), false);
+                }
+            }
+        } else if (name.equalsIgnoreCase("Phat Beet") || name.equalsIgnoreCase("Kiwibeast")) {
+            int radius = plant.getPlantStage();
+            for (Zombie z : activeZombies) {
+                if (Math.abs(z.getY() - py) <= radius && Math.abs(z.getX() - px) <= radius) {
+                    z.takeDamage(plant.getDamage(), false);
+                }
+            }
+        }
+    }
+
+    private void executeExplosiveLogic(Plant plant, List<Plant> toRemove) {
+        String name = plant.getName();
+        int px = plant.getX();
+        int py = plant.getY();
+
+        if (name.equalsIgnoreCase("Cherry Bomb") || name.equalsIgnoreCase("Grapeshot")) {
+            for (Zombie z : activeZombies) {
+                if (Math.abs(z.getY() - py) <= 1 && Math.abs(z.getX() - px) <= 1.5) {
+                    z.takeDamage(1800, true);
+                }
+            }
+            toRemove.add(plant);
+            gameLogMessages.add(name + " exploded in a 3x3 area!");
+        } else if (name.equalsIgnoreCase("Jalapeno")) {
+            for (Zombie z : activeZombies) {
+                if (z.getY() == py) {
+                    z.takeDamage(1800, true);
+                }
+            }
+            toRemove.add(plant);
+            gameLogMessages.add("Jalapeno incinerated row " + py + "!");
+        } else if (name.equalsIgnoreCase("Doom-shroom")) {
+            for (Zombie z : activeZombies) {
+                z.takeDamage(1800, true);
+            }
+            toRemove.add(plant);
+            gameLogMessages.add("Doom-shroom wiped out the entire field!");
+        } else if (name.equalsIgnoreCase("Potato Mine") || name.equalsIgnoreCase("Primal Potato Mine")) {
+            if (plant.isArmed()) {
+                Zombie target = getFirstZombieInRowAhead(py, px - 0.5);
+                if (target != null && Math.abs(target.getX() - px) <= 0.6) {
+                    int radius = name.contains("Primal") ? 1 : 0;
+                    for (Zombie z : activeZombies) {
+                        if (Math.abs(z.getY() - py) <= radius && Math.abs(z.getX() - px) <= (radius + 0.5)) {
+                            z.takeDamage(plant.getDamage(), true);
+                        }
+                    }
+                    toRemove.add(plant);
+                    gameLogMessages.add(name + " detonated at (" + px + ", " + py + ")!");
+                }
+            }
+        } else if (name.equalsIgnoreCase("Squash")) {
+            Zombie target = getFirstZombieInRowAhead(py, px - 0.5);
+            if (target != null && Math.abs(target.getX() - px) <= 1.2) {
+                target.takeDamage(1800, true);
+                toRemove.add(plant);
+                gameLogMessages.add("Squash squashed zombie at (" + px + ", " + py + ")!");
+            }
+        } else if (name.equalsIgnoreCase("Ice-shroom") || name.equalsIgnoreCase("Iceberg Lettuce")) {
+            if (name.equalsIgnoreCase("Ice-shroom")) {
+                for (Zombie z : activeZombies) {
+                    z.applyFrozen(5.0);
+                }
+                toRemove.add(plant);
+                gameLogMessages.add("Ice-shroom froze all zombies!");
+            } else {
+                Zombie z = getFirstZombieInRowAhead(py, px - 0.5);
+                if (z != null && Math.abs(z.getX() - px) <= 0.5) {
+                    z.applyFrozen(5.0);
+                    toRemove.add(plant);
+                    gameLogMessages.add("Iceberg Lettuce froze zombie at (" + px + ", " + py + ")!");
+                }
+            }
+        } else if (name.equalsIgnoreCase("Hot Potato")) {
+            Tile tile = board.getTile(py, px);
+            if (tile != null && tile.getPlant() != null && tile.getPlant().isFrozen()) {
+                tile.getPlant().melt();
+                gameLogMessages.add("Hot Potato melted ice at (" + px + ", " + py + ")!");
+            }
+            toRemove.add(plant);
+        } else if (name.equalsIgnoreCase("Grave Buster")) {
+            Tile tile = board.getTile(py, px);
+            if (tile != null && tile.getType() == TileType.GRAVE) {
+                board.removeGrave(py, px);
+                gameLogMessages.add("Grave Buster destroyed grave at (" + px + ", " + py + ")!");
+            }
+            toRemove.add(plant);
+        }
+    }
+
+    private void executeUtilityLogic(Plant plant, List<Plant> toRemove) {
+        String name = plant.getName();
+        int px = plant.getX();
+        int py = plant.getY();
+
+        if (name.equalsIgnoreCase("Magnet-shroom") && plant.getMagnetCooldownTicks() <= 0) {
+            for (Zombie z : activeZombies) {
+                if (z.getArmorHealth() > 0 && ("BUCKET".equalsIgnoreCase(z.getArmorType()) || "CONE".equalsIgnoreCase(z.getArmorType()) || "KNIGHT".equalsIgnoreCase(z.getArmorType()))) {
+                    z.setArmorHealth(0);
+                    z.setArmorType("none");
+                    plant.startMagnetCooldown(150);
+                    gameLogMessages.add("Magnet-shroom removed armor from zombie at lane " + z.getY() + "!");
+                    break;
+                }
+            }
+        } else if (name.equalsIgnoreCase("Caulipower") || name.equalsIgnoreCase("Electric Blueberry")) {
+            if (!activeZombies.isEmpty()) {
+                Zombie target = activeZombies.get(new Random().nextInt(activeZombies.size()));
+                if (name.equalsIgnoreCase("Caulipower")) {
+                    target.setHypnotized(true);
+                    gameLogMessages.add("Caulipower hypnotized zombie " + target.getName() + "!");
+                } else {
+                    target.takeDamage(5000, true);
+                    gameLogMessages.add("Electric Blueberry zapped zombie " + target.getName() + "!");
+                }
+            }
+        }
+    }
+
+    private void executeMintLogic(Plant plant, List<Plant> toRemove) {
+        String name = plant.getName();
+        String familyCategory = switch (name) {
+            case "Appease-mint" -> "SHOOTER";
+            case "Arma-mint" -> "LOBBER";
+            case "Bombard-mint" -> "EXPLOSIVE";
+            case "Enforce-mint" -> "MELEE";
+            case "Reinforce-mint" -> "WALL_NUT";
+            case "Enchant-mint" -> "MODIFIER";
+            case "Pierce-mint" -> "STRIKE_THROUGH";
+            case "catTail-mint" -> "HOMING";
+            default -> "";
+        };
+
+        if (!familyCategory.isEmpty()) {
+            triggerMintBoost(familyCategory);
+            toRemove.add(plant);
+            gameLogMessages.add(name + " activated Plant Food boost for all " + familyCategory + " plants!");
+        }
+    }
+
+    private void triggerMintBoost(String category) {
+        for (Plant p : activePlants) {
+            if (category.equalsIgnoreCase(p.getCategory())) {
+                if ("WALL_NUT".equalsIgnoreCase(category)) {
+                    p.applyPlantFoodArmor(4000);
+                } else {
+                    p.heal(p.getMaxHealth());
                 }
             }
         }

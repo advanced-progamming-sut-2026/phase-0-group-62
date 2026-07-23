@@ -27,7 +27,7 @@ public class PreGameController {
                 return "Error: Please specify a chapter using -c <chaptername>";
             }
 
-            String lowerCh = chapter.trim().toLowerCase();
+            String lowerCh = cleanString(chapter).toLowerCase();
 
             if (lowerCh.equals("ancientegypt") || lowerCh.equals("egypt")) {
                 activeChapterName = "AncientEgypt";
@@ -38,9 +38,7 @@ public class PreGameController {
             } else if (lowerCh.equals("ancientegypt3")) {
                 activeChapterName = "AncientEgypt3";
                 return "Successfully entered chapter: AncientEgypt (Level 3 - Dead Line)";
-            }
-
-            else if (lowerCh.equals("frostbitecaves") || lowerCh.equals("caves")) {
+            } else if (lowerCh.equals("frostbitecaves") || lowerCh.equals("caves")) {
                 activeChapterName = "FrostbiteCaves";
                 return "Successfully entered chapter: FrostbiteCaves (Level 1)";
             } else if (lowerCh.equals("frostbitecaves2")) {
@@ -49,9 +47,7 @@ public class PreGameController {
             } else if (lowerCh.equals("frostbitecaves3")) {
                 activeChapterName = "FrostbiteCaves3";
                 return "Successfully entered chapter: FrostbiteCaves (Level 3 - Timed War)";
-            }
-
-            else if (lowerCh.equals("bigwavebeach") || lowerCh.equals("beach")) {
+            } else if (lowerCh.equals("bigwavebeach") || lowerCh.equals("beach")) {
                 activeChapterName = "BigWaveBeach";
                 return "Successfully entered chapter: BigWaveBeach (Level 1)";
             } else if (lowerCh.equals("bigwavebeach2")) {
@@ -60,9 +56,7 @@ public class PreGameController {
             } else if (lowerCh.equals("bigwavebeach3")) {
                 activeChapterName = "BigWaveBeach3";
                 return "Successfully entered chapter: BigWaveBeach (Level 3 - Dead Line)";
-            }
-
-            else if (lowerCh.equals("darkages")) {
+            } else if (lowerCh.equals("darkages")) {
                 activeChapterName = "DarkAges";
                 return "Successfully entered chapter: DarkAges (Level 1)";
             } else if (lowerCh.equals("darkages2")) {
@@ -93,7 +87,7 @@ public class PreGameController {
             StringBuilder sb = new StringBuilder("Your available plants:\n");
             for (String plant : unlocked) {
                 int level = currentUser.getPlantLevels().getOrDefault(plant, 1);
-                sb.append("- ").append(plant).append(" (Level ").append(level).append(")");
+                sb.append("- ").append(cleanString(plant)).append(" (Level ").append(level).append(")");
                 if (boostedPlants.contains(plant)) {
                     sb.append(" [BOOSTED]");
                 }
@@ -105,14 +99,18 @@ public class PreGameController {
         if (action.equalsIgnoreCase("add plant")) {
             String plantName = cmd.getArg("-t");
             if (plantName == null) return "Invalid format. Use: add plant -t <type>";
+            plantName = cleanString(plantName);
 
-            boolean existsInGame = PlantLoader.loadPlants().stream()
-                    .anyMatch(p -> p.getName().equalsIgnoreCase(plantName));
-            if (!existsInGame) {
+            String finalPlantName = plantName;
+            Plant matchingPlantInDb = PlantLoader.loadPlants().stream()
+                    .filter(p -> normalizeName(p.getName()).equalsIgnoreCase(normalizeName(finalPlantName)))
+                    .findFirst().orElse(null);
+
+            if (matchingPlantInDb == null) {
                 return "Error: Plant type does not exist in the game.";
             }
 
-            String exactPlantName = findExactPlantName(currentUser.getUnlockedPlants(), plantName);
+            String exactPlantName = findExactPlantName(currentUser.getUnlockedPlants(), matchingPlantInDb.getName());
             if (exactPlantName == null) {
                 return "Error: This plant is locked! Purchase it from the collection menu.";
             }
@@ -134,6 +132,7 @@ public class PreGameController {
             if (mgName == null) {
                 return "Error: Please specify a minigame using -m <name>";
             }
+            mgName = cleanString(mgName);
 
             if (mgName.equalsIgnoreCase("Vasebreaker")) {
                 activeChapterName = "Vasebreaker_MG";
@@ -158,6 +157,7 @@ public class PreGameController {
         if (action.equalsIgnoreCase("remove plant")) {
             String plantName = cmd.getArg("-t");
             if (plantName == null) return "Invalid format. Use: remove plant -t <type>";
+            plantName = cleanString(plantName);
 
             String exactPlantName = findExactPlantName(selectedPlants, plantName);
             if (exactPlantName == null) {
@@ -172,6 +172,7 @@ public class PreGameController {
         if (action.equalsIgnoreCase("boost plant")) {
             String plantName = cmd.getArg("-t");
             if (plantName == null) return "Invalid format. Use: boost plant -t <type>";
+            plantName = cleanString(plantName);
 
             String exactPlantName = findExactPlantName(currentUser.getUnlockedPlants(), plantName);
             if (exactPlantName == null) {
@@ -207,10 +208,21 @@ public class PreGameController {
         return "invalid command";
     }
 
+    private String cleanString(String input) {
+        if (input == null) return "";
+        return input.replaceAll("^\"|\"$", "").trim();
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) return "";
+        return cleanString(name).toLowerCase().replace(" ", "").replace("-", "");
+    }
+
     private String findExactPlantName(List<String> list, String searchName) {
+        String target = normalizeName(searchName);
         for (String s : list) {
-            if (s.equalsIgnoreCase(searchName)) {
-                return s;
+            if (normalizeName(s).equalsIgnoreCase(target)) {
+                return cleanString(s);
             }
         }
         return null;
