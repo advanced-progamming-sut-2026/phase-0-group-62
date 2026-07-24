@@ -25,7 +25,7 @@ public class Spawner {
 
     public Spawner(Board board, int levelNumber, Difficulty difficulty) {
         this.board = board;
-        this.totalWaves = 3;
+        this.totalWaves = Math.max(3, levelNumber + 2);
         this.difficulty = difficulty;
         this.currentWave = 0;
         this.remainingZombies = 0;
@@ -46,16 +46,24 @@ public class Spawner {
     }
 
     private int calculateWaveCost(int wave) {
-        int baseCost = 300 * wave;
+        int baseCost = 1000 + (wave - 1) * 500;
+
         switch (difficulty) {
-            case EASY: baseCost = (int) (baseCost * 0.8); break;
-            case HARD: baseCost = (int) (baseCost * 1.3); break;
-            default: break;
+            case EASY:
+                baseCost = (int) (baseCost * 0.9);
+                break;
+            case HARD:
+                baseCost = (int) (baseCost * 1.3);
+                break;
+            default:
+                break;
         }
+
         if (wave == totalWaves) {
             baseCost = (int) (baseCost * 1.5);
         }
-        return Math.max(baseCost, 200);
+
+        return Math.max(baseCost, 1000 + (wave - 1) * 500);
     }
 
     private List<String> generateZombieTypes(int waveCost, int wave) {

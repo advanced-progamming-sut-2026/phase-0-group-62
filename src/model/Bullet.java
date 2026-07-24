@@ -10,6 +10,8 @@ public class Bullet {
     private int splashRadius;
     private int targetRow;
     private boolean active;
+    private int hitZombieCount;
+    private int maxPierceTargets;
 
     public enum BulletType {
         NORMAL,
@@ -38,6 +40,8 @@ public class Bullet {
         this.splashRadius = splashRadius;
         this.targetRow = row;
         this.active = true;
+        this.hitZombieCount = 0;
+        this.maxPierceTargets = 0;
     }
 
     public void move() {
@@ -56,6 +60,11 @@ public class Bullet {
     public void setTargetRow(int targetRow) { this.targetRow = targetRow; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public int getHitZombieCount() { return hitZombieCount; }
+    public void incrementHitZombieCount() { this.hitZombieCount++; }
+    public int getMaxPierceTargets() { return maxPierceTargets; }
+    public void setMaxPierceTargets(int maxPierceTargets) { this.maxPierceTargets = maxPierceTargets; }
 
     public boolean isOutOfBounds(int maxColumns) {
         return column > maxColumns || column < 0;

@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static model.minigame.Vasebreaker.*;
+
 public class GameController extends Controller {
     private Game game;
     private boolean cooldownCheatActive = false;
@@ -94,7 +96,12 @@ public class GameController extends Controller {
         }
 
         Tile tile = game.getBoard().getTile(y, x);
-        if (tile != null && (tile.getType() == TileType.GRAVE || tile.isSlideway())) {
+        boolean isGraveBuster = type.replace(" ", "").replace("-", "").equalsIgnoreCase("GraveBuster");
+        if (tile != null && tile.getType() == TileType.GRAVE) {
+            if (!isGraveBuster) {
+                return "Error: Cannot plant on this tile! It is blocked by a grave. Use Grave Buster.";
+            }
+        } else if (tile != null && tile.isSlideway()) {
             return "Error: Cannot plant on this tile! It is blocked by environment.";
         }
 
@@ -144,6 +151,7 @@ public class GameController extends Controller {
                     break;
                 }
             }
+
             if (newPlant == null) {
                 String[] variations = {type, type.toLowerCase(), type.toUpperCase(), type.replace(" ", ""), type.replace(" ", "_")};
                 for (String var : variations) {
@@ -158,7 +166,7 @@ public class GameController extends Controller {
 
         if (model.UserSession.isLoggedIn() && model.UserSession.getCurrentUser() != null) {
             int userLvl = model.UserSession.getCurrentUser().getPlantLevels().getOrDefault(newPlant.getName(), 1);
-            newPlant.setLevel(userLvl);
+            newPlant.setPlantStage(userLvl);
         }
 
         if (game.getSunCount() < newPlant.getCost()) {
@@ -175,6 +183,10 @@ public class GameController extends Controller {
             if (check != null && check.getName().equalsIgnoreCase("Lily Pad") && !isNewAquatic) {
                 tile.setSupportPlant(check);
             }
+        }
+
+        if (tile != null && (tile.isSlideway() || tile.isCrater())) {
+            return "Error: Cannot plant on this tile! It is blocked by environment or a crater.";
         }
 
         game.spendSun(newPlant.getCost());

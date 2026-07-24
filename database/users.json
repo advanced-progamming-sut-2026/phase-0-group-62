@@ -941,10 +941,106 @@
       {
         "content": "New plant unlocked: Cat-tail! Check your collection.",
         "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieDarkImpDragon!",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: BrickZombie!",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Imitater! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Ice-shroom! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Lily Pad! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Hot Potato! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Grave Buster! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Enlighten-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Appease-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Arma-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Bombard-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Enforce-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Reinforce-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Enchant-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New plant unlocked: Pierce-mint! Check your collection.",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: BucketZombie!",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieIceAgeDodo!",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieNewspaper!",
+        "isRead": false
+      },
+      {
+        "content": "Congratulations! New levels and mini-games are now unlocked.",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieTombRaiser!",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieDarkJuggler!",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieWizard!",
+        "isRead": false
+      },
+      {
+        "content": "New zombie encountered: ZombieRa!",
+        "isRead": false
+      },
+      {
+        "content": "Congratulations! New levels and mini-games are now unlocked.",
+        "isRead": false
       }
     ],
-    "coins": 900,
-    "gems": 9993,
+    "coins": 74900,
+    "gems": 19993,
     "unlockedPlants": [
       "PeaShooter",
       "sunflower",
@@ -1000,13 +1096,35 @@
       "Torchwood",
       "Magnet-shroom",
       "Hypno-shroom",
-      "Cat-tail"
+      "Cat-tail",
+      "Imitater",
+      "Ice-shroom",
+      "Lily Pad",
+      "Hot Potato",
+      "Grave Buster",
+      "Enlighten-mint",
+      "Appease-mint",
+      "Arma-mint",
+      "Bombard-mint",
+      "Enforce-mint",
+      "Reinforce-mint",
+      "Enchant-mint",
+      "Pierce-mint"
     ],
     "observedZombies": [
       "NormalZombie",
       "ConeZombie",
       "ZombieImp",
-      "KnightZombie"
+      "KnightZombie",
+      "ZombieDarkImpDragon",
+      "BrickZombie",
+      "BucketZombie",
+      "ZombieIceAgeDodo",
+      "ZombieNewspaper",
+      "ZombieTombRaiser",
+      "ZombieDarkJuggler",
+      "ZombieWizard",
+      "ZombieRa"
     ],
     "plantLevels": {
       "PeaShooter": 1,
@@ -1063,7 +1181,20 @@
       "Torchwood": 1,
       "Magnet-shroom": 1,
       "Hypno-shroom": 1,
-      "Cat-tail": 1
+      "Cat-tail": 1,
+      "Imitater": 1,
+      "Ice-shroom": 1,
+      "Lily Pad": 1,
+      "Hot Potato": 1,
+      "Grave Buster": 1,
+      "Enlighten-mint": 1,
+      "Appease-mint": 1,
+      "Arma-mint": 1,
+      "Bombard-mint": 1,
+      "Enforce-mint": 1,
+      "Reinforce-mint": 1,
+      "Enchant-mint": 1,
+      "Pierce-mint": 1
     },
     "greenhouseBoosts": {},
     "plantFoodInventory": 0,

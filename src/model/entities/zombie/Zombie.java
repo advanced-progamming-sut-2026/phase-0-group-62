@@ -357,6 +357,13 @@ public class Zombie {
         }
 
         double currentSpeed = getEffectiveSpeed();
+        if (isHypnotized) {
+            this.x += currentSpeed;
+            if (this.x > 8.0) {
+                this.x = 8.0;
+            }
+            return;
+        }
         if (name.equalsIgnoreCase("SquashZombie")) {
             this.x -= (currentSpeed * 2.5);
         } else if (isCharging) {

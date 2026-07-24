@@ -103,6 +103,14 @@ public class GameView extends View {
         Board board = game.getBoard();
         LawnMower[] mowers = game.getLawnMowers();
 
+        // ۱. چاپ دقیق راهنمای شمارهٔ ستون‌ها (۰ تا ۸) دقیقا بالای مرکز هر ستون
+        StringBuilder colHeader = new StringBuilder("       "); // ۵ کاراکتر برای عبور از [ M] + ۲ فاصله
+        for (int c = 0; c < 9; c++) {
+            colHeader.append(String.format("%-7d", c)); // عرض دقیق ۷ کاراکتر برای هر ستون
+        }
+        showMessage(colHeader.toString());
+
+        // ۲. چاپ سطرها همراه با شمارهٔ سطر (۰ تا ۴) در سمت راست
         for (int r = 0; r < board.getRows(); r++) {
             StringBuilder rowStr = new StringBuilder();
 
@@ -120,6 +128,9 @@ public class GameView extends View {
                 String paddedContent = String.format("%-4s", cellContent);
                 rowStr.append("[").append(paddedContent).append("] ");
             }
+
+            // شماره سطر در سمت راست
+            rowStr.append(" ").append(r);
             showMessage(rowStr.toString());
         }
     }
@@ -141,7 +152,6 @@ public class GameView extends View {
                 return "PK-" + tile.getTemporarySeedPacket().substring(0, 1).toUpperCase();
             }
         }
-
 
         if (game.getActiveMiniGame() instanceof Beghoul) {
             Beghoul bg = (Beghoul) game.getActiveMiniGame();

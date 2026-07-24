@@ -21,6 +21,7 @@ public class Tile {
 
     private String temporarySeedPacket;
     private int seedPacketTimer;
+    private boolean isCrater;
 
     public Tile(int row, int column) {
         this.row = row;
@@ -28,10 +29,11 @@ public class Tile {
         this.type = TileType.GRASS;
         this.temporarySeedPacket = null;
         this.seedPacketTimer = 0;
+        this.isCrater = false;
     }
 
     public boolean isEmpty() {
-        return plant == null && zombie == null;
+        return plant == null && zombie == null && !isCrater;
     }
 
     public int getRow() {
@@ -144,5 +146,13 @@ public class Tile {
 
     public void setSeedPacketTimer(int seedPacketTimer) {
         this.seedPacketTimer = seedPacketTimer;
+    }
+
+    public boolean isCrater() {
+        return isCrater;
+    }
+
+    public void setCrater(boolean crater) {
+        isCrater = crater;
     }
 }
